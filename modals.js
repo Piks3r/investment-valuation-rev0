@@ -1,3 +1,37 @@
+    // ── Popular asset lists ───────────────────────────────────────────────
+    const POPULAR = {
+      crypto: [
+        { id:'bitcoin',     symbol:'BTC',  name:'Bitcoin',      coingeckoId:'bitcoin',     yahooSymbol:null },
+        { id:'ethereum',    symbol:'ETH',  name:'Ethereum',     coingeckoId:'ethereum',    yahooSymbol:null },
+        { id:'solana',      symbol:'SOL',  name:'Solana',       coingeckoId:'solana',      yahooSymbol:null },
+        { id:'binancecoin', symbol:'BNB',  name:'BNB',          coingeckoId:'binancecoin', yahooSymbol:null },
+        { id:'ripple',      symbol:'XRP',  name:'XRP',          coingeckoId:'ripple',      yahooSymbol:null },
+        { id:'cardano',     symbol:'ADA',  name:'Cardano',      coingeckoId:'cardano',     yahooSymbol:null },
+        { id:'dogecoin',    symbol:'DOGE', name:'Dogecoin',     coingeckoId:'dogecoin',    yahooSymbol:null },
+        { id:'avalanche-2', symbol:'AVAX', name:'Avalanche',    coingeckoId:'avalanche-2', yahooSymbol:null },
+      ],
+      stock: [
+        { id:'yf_nvda',  symbol:'NVDA',  name:'NVIDIA',        coingeckoId:null, yahooSymbol:'NVDA'  },
+        { id:'yf_aapl',  symbol:'AAPL',  name:'Apple',         coingeckoId:null, yahooSymbol:'AAPL'  },
+        { id:'yf_msft',  symbol:'MSFT',  name:'Microsoft',     coingeckoId:null, yahooSymbol:'MSFT'  },
+        { id:'yf_tsla',  symbol:'TSLA',  name:'Tesla',         coingeckoId:null, yahooSymbol:'TSLA'  },
+        { id:'yf_googl', symbol:'GOOGL', name:'Alphabet',      coingeckoId:null, yahooSymbol:'GOOGL' },
+        { id:'yf_amzn',  symbol:'AMZN',  name:'Amazon',        coingeckoId:null, yahooSymbol:'AMZN'  },
+        { id:'yf_meta',  symbol:'META',  name:'Meta',          coingeckoId:null, yahooSymbol:'META'  },
+        { id:'yf_nflx',  symbol:'NFLX',  name:'Netflix',       coingeckoId:null, yahooSymbol:'NFLX'  },
+      ],
+      etf: [
+        { id:'yf_spy',   symbol:'SPY',   name:'S&P 500 ETF',    coingeckoId:null, yahooSymbol:'SPY'  },
+        { id:'yf_qqq',   symbol:'QQQ',   name:'Nasdaq 100 ETF', coingeckoId:null, yahooSymbol:'QQQ'  },
+        { id:'yf_vti',   symbol:'VTI',   name:'Total Market',   coingeckoId:null, yahooSymbol:'VTI'  },
+        { id:'yf_voo',   symbol:'VOO',   name:'Vanguard S&P',   coingeckoId:null, yahooSymbol:'VOO'  },
+        { id:'yf_iwm',   symbol:'IWM',   name:'Russell 2000',   coingeckoId:null, yahooSymbol:'IWM'  },
+        { id:'yf_gld',   symbol:'GLD',   name:'Gold ETF',       coingeckoId:null, yahooSymbol:'GLD'  },
+        { id:'yf_arkk',  symbol:'ARKK',  name:'ARK Innovation', coingeckoId:null, yahooSymbol:'ARKK' },
+        { id:'yf_xlk',   symbol:'XLK',   name:'Tech Sector',    coingeckoId:null, yahooSymbol:'XLK'  },
+      ],
+    };
+
     // ── Info modal ────────────────────────────────────────────────────────
     function openInfo(key) {
       const info = INFO[key];
@@ -26,11 +60,84 @@
     function closeInfo() { document.getElementById('infoModal').classList.add('hidden'); }
 
     // ── Add asset modal ───────────────────────────────────────────────────
+    let activeCategory = 'all';
+
+    function _updateCategoryTabs() {
+      ['all','crypto','stock','etf'].forEach(cat => {
+        const btn = document.getElementById('catTab-' + cat);
+        if (!btn) return;
+        if (cat === activeCategory) {
+          btn.className = 'add-cat-tab flex-1 py-1.5 rounded-lg text-sm font-semibold transition-colors bg-gray-700 text-white';
+        } else {
+          btn.className = 'add-cat-tab flex-1 py-1.5 rounded-lg text-sm font-semibold transition-colors text-gray-400 hover:text-white';
+        }
+      });
+    }
+
+    function setCategory(cat) {
+      activeCategory = cat;
+      _updateCategoryTabs();
+      document.getElementById('assetSearchInput').value = '';
+      document.getElementById('searchStatus').classList.add('hidden');
+      _showPopular();
+    }
+
+    function _showPopular() {
+      const tracked  = loadTrackedAssets();
+      const trackedIds = new Set(tracked.map(a => a.id));
+      let items;
+      if (activeCategory === 'all') {
+        items = [...POPULAR.crypto, ...POPULAR.stock, ...POPULAR.etf];
+      } else {
+        items = POPULAR[activeCategory] || [];
+      }
+      const enriched = items.map(r => ({
+        ...r,
+        type: r.coingeckoId ? 'crypto' : (r.yahooSymbol && POPULAR.etf.find(e => e.id === r.id) ? 'etf' : 'stock'),
+        alreadyAdded: trackedIds.has(r.id),
+      }));
+      _renderAddResults(enriched, true);
+    }
+
+    function _renderAddResults(results, showHeader) {
+      const statusEl = document.getElementById('searchStatus');
+      const resEl    = document.getElementById('searchResults');
+      statusEl.classList.add('hidden');
+
+      if (results.length === 0) {
+        resEl.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">No results found.</p>';
+        return;
+      }
+
+      _searchResults = results;
+      const header = showHeader ? '<p class="text-xs text-gray-500 font-medium uppercase tracking-wide px-1 pb-1">Popular</p>' : '';
+      resEl.innerHTML = header + results.map((r, idx) => {
+        const typeBadge  = r.type === 'crypto' ? 'text-blue-400 bg-blue-900/30' : r.type === 'etf' ? 'text-purple-400 bg-purple-900/30' : 'text-green-400 bg-green-900/30';
+        const addedBadge = r.alreadyAdded ? '<span class="text-xs text-gray-500 ml-auto">Added</span>' : '';
+        const clickAttr  = r.alreadyAdded ? '' : `onclick="_addFromSearchIdx(${idx})"`;
+        const imgOrIcon  = r.thumb
+          ? `<img src="${r.thumb}" class="w-8 h-8 rounded-full" onerror="this.style.display='none'" />`
+          : `<div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-400">${r.symbol.slice(0,2)}</div>`;
+        return `
+          <div class="search-result ${r.alreadyAdded ? 'opacity-50 cursor-not-allowed' : ''}" ${clickAttr}>
+            ${imgOrIcon}
+            <div class="min-w-0 flex-1">
+              <div class="font-semibold text-sm truncate">${r.name}</div>
+              <div class="text-xs text-gray-500">${r.symbol}</div>
+            </div>
+            <span class="text-xs font-bold px-2 py-0.5 rounded-md ${typeBadge} shrink-0">${r.type.toUpperCase()}</span>
+            ${addedBadge}
+          </div>`;
+      }).join('');
+    }
+
     function openAddModal() {
+      activeCategory = 'all';
       document.getElementById('addModal').classList.remove('hidden');
       document.getElementById('assetSearchInput').value = '';
-      document.getElementById('searchResults').innerHTML = '';
       document.getElementById('searchStatus').classList.add('hidden');
+      _updateCategoryTabs();
+      _showPopular();
       setTimeout(() => document.getElementById('assetSearchInput').focus(), 50);
     }
     function closeAddModal() {
@@ -42,8 +149,7 @@
       if (searchTimer) clearTimeout(searchTimer);
       const q = val.trim();
       if (!q) {
-        document.getElementById('searchResults').innerHTML = '';
-        document.getElementById('searchStatus').classList.add('hidden');
+        _showPopular();
         return;
       }
       document.getElementById('searchStatus').textContent = 'Searching…';
@@ -54,9 +160,13 @@
 
     async function searchAssets(query) {
       try {
+        const cat = activeCategory;
+        const skipCg  = cat === 'stock' || cat === 'etf';
+        const skipYf  = cat === 'crypto';
+
         const [cgRes, yfRes] = await Promise.allSettled([
-          cgFetch(`/search?query=${encodeURIComponent(query)}`),
-          yahooFetch(`https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=6&lang=en-US`),
+          skipCg ? Promise.resolve(null) : cgFetch(`/search?query=${encodeURIComponent(query)}`),
+          skipYf ? Promise.resolve(null) : yahooFetch(`https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=6&lang=en-US`),
         ]);
 
         const results = [];
@@ -86,43 +196,17 @@
             if (!q.symbol || !q.quoteType) return;
             const t = q.quoteType === 'ETF' ? 'etf' : q.quoteType === 'EQUITY' ? 'stock' : null;
             if (!t) return;
+            if (cat !== 'all' && t !== cat) return; // filter by active category
             const id = 'yf_' + q.symbol.toLowerCase();
             results.push({ id, symbol: q.symbol, name: q.shortname ?? q.symbol, type: t, coingeckoId: null, yahooSymbol: q.symbol, alreadyAdded: trackedIds.has(id) });
           });
         }
 
-        const statusEl = document.getElementById('searchStatus');
-        const resEl    = document.getElementById('searchResults');
-
-        if (results.length === 0) {
-          statusEl.textContent = 'No results found.';
-          statusEl.classList.remove('hidden');
-          return;
-        }
-
-        _searchResults = results;
-        statusEl.classList.add('hidden');
-        resEl.innerHTML = results.map((r, idx) => {
-          const typeBadge  = r.type === 'crypto' ? 'text-blue-400 bg-blue-900/30' : r.type === 'etf' ? 'text-purple-400 bg-purple-900/30' : 'text-green-400 bg-green-900/30';
-          const addedBadge = r.alreadyAdded ? '<span class="text-xs text-gray-500 ml-auto">Added</span>' : '';
-          const clickAttr  = r.alreadyAdded ? '' : `onclick="_addFromSearchIdx(${idx})"`;
-          const imgOrIcon  = r.thumb
-            ? `<img src="${r.thumb}" class="w-8 h-8 rounded-full" onerror="this.style.display='none'" />`
-            : `<div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-400">${r.symbol.slice(0,2)}</div>`;
-          return `
-            <div class="search-result ${r.alreadyAdded ? 'opacity-50 cursor-not-allowed' : ''}" ${clickAttr}>
-              ${imgOrIcon}
-              <div class="min-w-0 flex-1">
-                <div class="font-semibold text-sm truncate">${r.name}</div>
-                <div class="text-xs text-gray-500">${r.symbol}</div>
-              </div>
-              <span class="text-xs font-bold px-2 py-0.5 rounded-md ${typeBadge} shrink-0">${r.type.toUpperCase()}</span>
-              ${addedBadge}
-            </div>`;
-        }).join('');
+        _renderAddResults(results, false);
       } catch (err) {
         console.error('Search error:', err);
         document.getElementById('searchStatus').textContent = 'Search failed. Try again.';
+        document.getElementById('searchStatus').classList.remove('hidden');
       }
     }
 
@@ -206,15 +290,29 @@
       ].join('');
     }
 
+    function _updatePresetDescription(name) {
+      const box = document.getElementById('presetDescBox');
+      if (!box) return;
+      const info = name && PRESET_INFO[name];
+      if (!info) { box.classList.add('hidden'); return; }
+      document.getElementById('presetDescTagline').textContent = info.tagline;
+      document.getElementById('presetDescText').textContent    = info.desc;
+      document.getElementById('presetDescBestFor').textContent = info.bestFor;
+      box.classList.remove('hidden');
+    }
+
     // Built-in preset click — apply weights, mark active, exit edit mode
     function applyWeightPreset(name) {
       const p = WEIGHT_PRESETS[name];
       if (!p) return;
       setWeightSliders(p);
       activePreset = name;
+      try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(p)); } catch {}
+      renderCardsView(currentFilter);
       renderAllPresetButtons();
       document.getElementById('customPresetName').value = '';
       document.getElementById('deletePresetBtn').classList.add('hidden');
+      _updatePresetDescription(name);
     }
 
     // Custom preset click — apply weights, mark active, enter edit mode
@@ -223,9 +321,12 @@
       if (!p) return;
       setWeightSliders(p);
       activePreset = name;
+      try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(p)); } catch {}
+      renderCardsView(currentFilter);
       renderAllPresetButtons();
       document.getElementById('customPresetName').value = name;
       document.getElementById('deletePresetBtn').classList.remove('hidden');
+      _updatePresetDescription(null);
     }
 
     function saveCustomPreset() {
@@ -284,6 +385,7 @@
       document.getElementById('customPresetName').value = '';
       document.getElementById('deletePresetBtn').classList.add('hidden');
       renderAllPresetButtons();
+      _updatePresetDescription(activePreset);
       document.getElementById('settingsModal').classList.remove('hidden');
     }
     function closeSettings() { document.getElementById('settingsModal').classList.add('hidden'); }

@@ -100,6 +100,7 @@
 
       return `
       <div class="asset-card" onclick="expandAsset('${asset.id}')">
+        <button class="asset-card-remove" onclick="event.stopPropagation();removeAsset('${asset.id}')" title="Remove">×</button>
         <div class="flex items-start justify-between mb-2">
           <div class="flex items-center gap-2.5 min-w-0">
             <div class="shrink-0 w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm"
@@ -273,6 +274,9 @@
       } else {
         trendEl.classList.add('hidden');
       }
+
+      // DCA Signal
+      renderDcaSection(comp);
 
       // Metrics table
       renderMetricsTable(scores, assetData, isBtc);
@@ -496,6 +500,31 @@
 
       document.getElementById('metricsTableBody').innerHTML = rows.join('') ||
         '<tr><td colspan="3" class="px-5 py-4 text-gray-500 text-sm">No metrics available</td></tr>';
+    }
+
+    // ── DCA Signal section ────────────────────────────────────────────────
+    function renderDcaSection(comp) {
+      const el = document.getElementById('dcaContent');
+      if (!el) return;
+      const sig = computeDcaSignal(comp);
+      const dotPct = clamp((comp / 10) * 100, 2, 98);
+      el.innerHTML = `
+        <div class="flex items-center justify-between gap-4 mb-4">
+          <div class="min-w-0">
+            <div class="text-2xl font-black leading-tight" style="color:${sig.color}">${sig.action}</div>
+            <p class="text-gray-400 text-sm mt-1 leading-snug">${sig.context}</p>
+          </div>
+          <div class="text-center shrink-0">
+            <div class="text-4xl font-black tabular-nums" style="color:${sig.color}">${sig.multiplier}</div>
+            <div class="text-gray-500 text-xs mt-0.5">of normal DCA</div>
+          </div>
+        </div>
+        <div class="h-3 score-gradient rounded-full relative mb-1.5">
+          <div class="meter-dot absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white shadow-lg ring-2 ring-gray-950" style="left:${dotPct}%"></div>
+        </div>
+        <div class="flex justify-between text-xs text-gray-600 px-0.5">
+          <span>Double Down</span><span>Buy More</span><span>Normal</span><span>Reduce</span><span>Pause</span>
+        </div>`;
     }
 
     // ── Chart ─────────────────────────────────────────────────────────────

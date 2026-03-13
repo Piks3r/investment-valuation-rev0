@@ -12,6 +12,23 @@
       sentiment: { fng: 40, rsi: 20, vs200: 20, vs50: 10, chg30: 10, dom: 0 },
     };
     const DEFAULT_WEIGHTS = WEIGHT_PRESETS.standard;
+    const PRESET_INFO = {
+      standard: {
+        tagline: 'Balanced — all signals weighted evenly',
+        desc: 'A well-rounded mix of sentiment, momentum, and trend signals. No single metric dominates the score.',
+        bestFor: 'Best for: Most investors. Use this if you\'re unsure which preset to choose.',
+      },
+      technical: {
+        tagline: 'Chart-focused — price action over sentiment',
+        desc: 'Ignores Fear & Greed and BTC dominance entirely. Doubles down on RSI and moving averages — pure price-action analysis.',
+        bestFor: 'Best for: Traders who prefer technical analysis over market sentiment.',
+      },
+      sentiment: {
+        tagline: 'Mood-driven — sentiment leads the score',
+        desc: 'Heavily weights the Fear & Greed Index. Prices moving averages as secondary context.',
+        bestFor: 'Best for: Investors who believe market psychology drives buy/sell decisions.',
+      },
+    };
 
     let chart         = null;
     let currentTF     = '1M';
@@ -154,6 +171,18 @@
           { label: 'Very Expensive', range: '>1.0',   meaning: 'Above upper band — price more than 2σ above the 20-day mean' },
         ],
         weight: '0% of composite score (informational metric)',
+      },
+      dcas: {
+        title: 'DCA Signal',
+        desc: 'An optimised Dollar-Cost Averaging signal derived from the composite valuation score. When conditions are historically cheap, it suggests increasing your DCA purchase; when expensive, reducing or pausing. The multiplier is applied to your standard DCA investment amount for that period.',
+        zones: [
+          { label: 'Double Down', range: '0 – 2',  meaning: 'Deeply discounted — consider buying 2× your normal DCA amount' },
+          { label: 'Buy More',    range: '2 – 4',  meaning: 'Conditions lean cheap — buy 1.5× your normal amount this period' },
+          { label: 'DCA Normal',  range: '4 – 6',  meaning: 'Fair value — stick to your regular DCA schedule and amount' },
+          { label: 'Reduce',      range: '6 – 8',  meaning: 'Conditions lean expensive — consider 0.5× your normal amount' },
+          { label: 'Pause DCA',   range: '8 – 10', meaning: 'Historically elevated — consider skipping DCA this period entirely' },
+        ],
+        weight: 'Signal is derived from the composite valuation score — adjust metric weights in Settings to influence it',
       },
     };
 

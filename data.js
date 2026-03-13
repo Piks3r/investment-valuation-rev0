@@ -279,8 +279,16 @@
       }
       return res.json();
     }
-    const cgFetch    = path => fetchWithProxy(CG + path);
-    const yahooFetch = url  => fetchWithProxy(url);
+    const cgFetch = path => fetchWithProxy(CG + path);
+    async function yahooFetch(url) {
+      // Try Vercel serverless proxy first (works in production, 404s locally)
+      try {
+        const res = await fetch('/api/yahoo?url=' + encodeURIComponent(url));
+        if (res.ok) return res.json();
+      } catch {}
+      // Fallback: direct then corsproxy
+      return fetchWithProxy(url);
+    }
 
     // ── Data fetchers ─────────────────────────────────────────────────────
     async function fetchCryptoData(asset) {
@@ -383,4 +391,12 @@
         dom:       dom      != null  ? scoreDom(dom)                   : null,
         bollinger: boll              ? scoreBollinger(boll.pctB)       : null,
       };
+    }
+
+    function computeDcaSignal(comp) {
+      if (comp <= 2) return { action: 'DOUBLE DOWN', multiplier: '2×',   color: '#10b981', context: 'Multiple metrics align toward deep discount — historically ideal DCA conditions' };
+      if (comp <= 4) return { action: 'BUY MORE',    multiplier: '1.5×', color: '#84cc16', context: 'Conditions lean cheap — consider increasing your DCA amount this period' };
+      if (comp <= 6) return { action: 'DCA NORMAL',  multiplier: '1×',   color: '#eab308', context: 'Market near fair value — maintain your regular DCA schedule and amount' };
+      if (comp <= 8) return { action: 'REDUCE',      multiplier: '0.5×', color: '#f97316', context: 'Conditions lean expensive — consider reducing your DCA amount this period' };
+      return           { action: 'PAUSE DCA',  multiplier: '0×',   color: '#ef4444', context: 'Multiple metrics indicate historically elevated levels — consider pausing DCA' };
     }

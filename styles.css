@@ -60,6 +60,7 @@ body { font-family: 'Inter', system-ui, sans-serif; }
 .zone-seg.active { border-bottom: 2px solid rgba(255,255,255,0.55); }
 
 .asset-card {
+  position: relative;
   background: #111827;
   border: 1px solid #1f2937;
   border-radius: 14px;
@@ -67,6 +68,23 @@ body { font-family: 'Inter', system-ui, sans-serif; }
   cursor: pointer;
   transition: all 0.18s;
 }
+.asset-card-remove {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #4b5563;
+  font-size: 14px;
+  line-height: 1;
+  transition: all 0.15s;
+  z-index: 1;
+}
+.asset-card-remove:hover { color: #ef4444; background: rgba(239,68,68,0.12); }
 .asset-card:hover {
   border-color: #4b5563;
   transform: translateY(-2px);
