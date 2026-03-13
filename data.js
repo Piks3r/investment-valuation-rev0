@@ -234,6 +234,14 @@
       } catch {}
       return null;
     }
+    function getAssetCacheStale(id) {
+      try {
+        const raw = localStorage.getItem('asset_cache_' + id);
+        if (!raw) return null;
+        return JSON.parse(raw).data ?? null;
+      } catch {}
+      return null;
+    }
     function setAssetCache(id, data) {
       try { localStorage.setItem('asset_cache_' + id, JSON.stringify({ ts: Date.now(), data })); } catch {}
     }
@@ -269,15 +277,23 @@
 
     // ── API helpers ───────────────────────────────────────────────────────
     async function fetchWithProxy(url) {
-      let res;
       try {
-        res = await fetch(url, { headers: { Accept: 'application/json' } });
+        const res = await fetch(url, { headers: { Accept: 'application/json' } });
+        if (res.status === 429) { const e = new Error('rate_limited'); e.type = 'rate_limited'; throw e; }
         if (!res.ok) throw new Error(res.status);
-      } catch {
-        res = await fetch(PROXY + encodeURIComponent(url));
-        if (!res.ok) throw new Error('proxy ' + res.status);
+        return res.json();
+      } catch (e) {
+        if (e.type === 'rate_limited') throw e; // don't retry — proxy won't help
       }
-      return res.json();
+      try {
+        const res = await fetch(PROXY + encodeURIComponent(url));
+        if (res.status === 429) { const e = new Error('rate_limited'); e.type = 'rate_limited'; throw e; }
+        if (!res.ok) { const e = new Error('proxy ' + res.status); e.type = 'api_error'; throw e; }
+        return res.json();
+      } catch (e) {
+        if (e.type) throw e; // already typed — rethrow
+        const e2 = new Error('network'); e2.type = 'network'; throw e2;
+      }
     }
     const cgFetch = path => fetchWithProxy(CG + path);
     async function yahooFetch(url) {
@@ -285,7 +301,10 @@
       try {
         const res = await fetch('/api/yahoo?url=' + encodeURIComponent(url));
         if (res.ok) return res.json();
-      } catch {}
+        if (res.status === 429) { const e = new Error('rate_limited'); e.type = 'rate_limited'; throw e; }
+      } catch (e) {
+        if (e.type === 'rate_limited') throw e;
+      }
       // Fallback: direct then corsproxy
       return fetchWithProxy(url);
     }

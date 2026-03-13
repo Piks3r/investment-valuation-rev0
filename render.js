@@ -70,14 +70,31 @@
       grid.style.display = 'grid';
       grid.innerHTML = '';
 
+      _updateDataBanner(new Set(), false);
+
       const weights = loadSettings();
+      const errorTypes = new Set();
+      let anyData = false;
+      let anyCached = false;
 
       results.forEach((res, i) => {
         const asset = filtered[i];
         if (res.status === 'rejected') {
-          grid.insertAdjacentHTML('beforeend', renderErrorCard(asset));
+          errorTypes.add(res.reason?.type || 'api_error');
+          const stale = getAssetCacheStale(asset.id);
+          if (stale) {
+            anyCached = true;
+            anyData = true;
+            const scores = computeScores(stale);
+            const comp   = composite(scores, weights);
+            const t      = tier(comp);
+            grid.insertAdjacentHTML('beforeend', renderAssetCard(asset, stale, scores, comp, t));
+          } else {
+            grid.insertAdjacentHTML('beforeend', renderErrorCard(asset));
+          }
           return;
         }
+        anyData = true;
         const assetData = res.value;
         const scores = computeScores(assetData);
         const comp   = composite(scores, weights);
@@ -85,10 +102,49 @@
         grid.insertAdjacentHTML('beforeend', renderAssetCard(asset, assetData, scores, comp, t));
       });
 
-      if (results.every(r => r.status === 'rejected') && filtered.length > 0) {
+      _updateDataBanner(errorTypes, anyCached);
+
+      if (!anyData && filtered.length > 0) {
         grid.style.display = 'none';
         errEl.classList.remove('hidden');
       }
+    }
+
+    function _updateDataBanner(errorTypes, anyCached) {
+      const banner = document.getElementById('dataBanner');
+      if (!banner) return;
+      if (errorTypes.size === 0) { banner.classList.add('hidden'); return; }
+
+      const isRateLimited = errorTypes.has('rate_limited');
+      const isNetwork     = !isRateLimited && errorTypes.has('network');
+      const upgradeBtn    = document.getElementById('dataBannerUpgrade');
+      const textEl        = document.getElementById('dataBannerText');
+      const iconEl        = document.getElementById('dataBannerIcon');
+
+      banner.className = 'mb-4 flex items-center justify-between gap-3 rounded-xl px-4 py-2.5 border ' +
+        (isRateLimited ? 'bg-yellow-900/20 border-yellow-700/40' : 'bg-gray-800/60 border-gray-700/60');
+
+      if (isRateLimited) {
+        iconEl.textContent = '⏱';
+        textEl.textContent = anyCached
+          ? 'API rate limit reached — showing cached data. Upgrade for uninterrupted real-time data.'
+          : 'API rate limit reached — wait a moment then refresh.';
+        upgradeBtn.classList.remove('hidden');
+      } else if (isNetwork) {
+        iconEl.textContent = '📡';
+        textEl.textContent = anyCached
+          ? 'No internet connection — showing cached data.'
+          : 'No internet connection.';
+        upgradeBtn.classList.add('hidden');
+      } else {
+        iconEl.textContent = '⚠️';
+        textEl.textContent = anyCached
+          ? 'Data sources temporarily unavailable — showing cached data.'
+          : 'Data sources temporarily unavailable.';
+        upgradeBtn.classList.add('hidden');
+      }
+
+      banner.classList.remove('hidden');
     }
 
     function renderAssetCard(asset, assetData, scores, comp, t) {
@@ -99,11 +155,11 @@
       const sparkline = sparklineSVG(assetData.prices || [], t.color);
 
       return `
-      <div class="asset-card" onclick="expandAsset('${asset.id}')">
+      <div class="asset-card" onclick="expandAsset('${asset.id}')" style="border-color:${t.border}; border-top-color:${t.color}; border-top-width:2px;">
         <button class="asset-card-remove" onclick="event.stopPropagation();removeAsset('${asset.id}')" title="Remove">×</button>
         <div class="flex items-start justify-between mb-2">
           <div class="flex items-center gap-2.5 min-w-0">
-            <div class="shrink-0 w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm"
+            <div class="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm"
               style="background:${t.bg};border:1px solid ${t.border};color:${t.color}">
               ${asset.symbol.slice(0,3)}
             </div>
@@ -113,26 +169,26 @@
             </div>
           </div>
           <div class="text-right shrink-0 ml-2">
-            <div class="font-black text-sm" style="color:${t.color}">${t.label}</div>
-            <div class="text-gray-400 text-xs">${comp.toFixed(1)} <span class="text-gray-600">/ 10</span></div>
+            <div class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold" style="background:${t.bg};color:${t.color};border:1px solid ${t.border};">${t.label}</div>
+            <div class="text-gray-400 text-xs mt-0.5">${comp.toFixed(1)} <span class="text-gray-600">/ 10</span></div>
           </div>
         </div>
-        <div class="flex items-center justify-between mb-2 text-sm">
+        <div class="flex items-center justify-between pt-2.5 border-t border-white/5 text-sm">
           <span class="font-semibold tabular-nums">${fmtPrice(price)}</span>
           <span>${colorPct(c24h)} <span class="text-gray-600 text-xs">(24h)</span></span>
         </div>
-        <div style="opacity:0.9">${sparkline}</div>
+        <div class="mt-2.5" style="opacity:0.9">${sparkline}</div>
       </div>`;
     }
 
     function renderErrorCard(asset) {
       return `
-      <div class="asset-card opacity-60 cursor-default" style="border-color:#374151">
+      <div class="asset-card opacity-50 cursor-default" style="border-color:#374151">
         <div class="flex items-center gap-2.5 mb-2">
-          <div class="w-9 h-9 rounded-full bg-gray-800 flex items-center justify-center text-xs text-gray-500 font-bold">${asset.symbol.slice(0,3)}</div>
+          <div class="w-10 h-10 rounded-xl bg-gray-800 flex items-center justify-center text-xs text-gray-500 font-bold">${asset.symbol.slice(0,3)}</div>
           <div><div class="font-bold text-sm">${asset.name}</div><div class="text-xs text-gray-500">${asset.symbol}</div></div>
         </div>
-        <p class="text-red-400 text-xs">Failed to load data</p>
+        <p class="text-red-400 text-xs flex items-center gap-1"><svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="2"/><path stroke-linecap="round" stroke-width="2" d="M12 8v4m0 4h.01"/></svg>Failed to load data</p>
       </div>`;
     }
 

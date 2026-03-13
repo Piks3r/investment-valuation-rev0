@@ -11,20 +11,21 @@
 <body class="bg-gray-950 text-white min-h-screen">
 
   <!-- ══════════════════════ HEADER ══════════════════════ -->
-  <header class="sticky top-0 z-50 bg-gray-950/90 backdrop-blur border-b border-gray-800/60 px-4 py-3">
+  <header class="sticky top-0 z-50 bg-gray-950/90 backdrop-blur border-b border-gray-800/60 px-4 py-3 relative">
     <div class="max-w-5xl mx-auto flex items-center justify-between gap-4">
 
       <div class="flex items-center gap-3 min-w-0">
-        <div class="shrink-0 w-9 h-9 bg-orange-500 rounded-full flex items-center justify-center font-black text-base">◈</div>
+        <div class="shrink-0 w-9 h-9 bg-orange-500 rounded-xl flex items-center justify-center font-black text-base"
+          style="box-shadow: 0 0 0 1px rgba(249,115,22,0.4), 0 4px 12px rgba(249,115,22,0.25);">◈</div>
         <div class="min-w-0">
           <h1 class="font-extrabold text-base sm:text-lg leading-tight truncate">Asset Valuation Dashboard</h1>
-          <p class="text-gray-500 text-xs hidden sm:block">Cheap or expensive right now?</p>
+          <p class="text-gray-500 text-xs hidden sm:block tracking-wide">Real-time valuation signals</p>
         </div>
       </div>
 
       <div class="flex items-center gap-2">
         <button onclick="openSettings()"
-          class="flex items-center gap-1.5 bg-gray-800 hover:bg-gray-700 active:bg-gray-600 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+          class="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/[0.08] hover:border-white/[0.12] px-3 py-2 rounded-lg text-sm font-medium transition-colors"
           title="Settings">
           <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -34,7 +35,7 @@
           <span class="hidden sm:inline">Settings</span>
         </button>
         <button id="refreshBtn" onclick="loadData(true)"
-          class="flex items-center gap-1.5 bg-gray-800 hover:bg-gray-700 active:bg-gray-600 px-3 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50">
+          class="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/[0.08] hover:border-white/[0.12] px-3 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50">
           <svg id="refreshIcon" class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
@@ -44,6 +45,7 @@
       </div>
 
     </div>
+    <div class="absolute bottom-0 left-0 right-0 h-px" style="background: linear-gradient(90deg, transparent 0%, rgba(249,115,22,0.35) 20%, rgba(249,115,22,0.15) 60%, transparent 100%);"></div>
   </header>
 
   <!-- ══════════════════════ MAIN ══════════════════════ -->
@@ -53,17 +55,113 @@
     <div id="cardsView">
 
       <!-- Filter bar -->
-      <div id="filterBar" class="flex gap-2 mb-5 flex-wrap">
-        <button class="filter-tab active" data-filter="ALL"    onclick="setFilter('ALL')">All</button>
-        <button class="filter-tab"        data-filter="CRYPTO" onclick="setFilter('CRYPTO')">Crypto</button>
-        <button class="filter-tab"        data-filter="STOCK"  onclick="setFilter('STOCK')">Stocks</button>
-        <button class="filter-tab"        data-filter="ETF"    onclick="setFilter('ETF')">ETFs</button>
+      <div id="filterBar" class="mb-5">
+        <div class="segment-group">
+          <button class="filter-tab active" data-filter="ALL"    onclick="setFilter('ALL')">All</button>
+          <button class="filter-tab"        data-filter="CRYPTO" onclick="setFilter('CRYPTO')">Crypto</button>
+          <button class="filter-tab"        data-filter="STOCK"  onclick="setFilter('STOCK')">Stocks</button>
+          <button class="filter-tab"        data-filter="ETF"    onclick="setFilter('ETF')">ETFs</button>
+        </div>
       </div>
 
-      <!-- Loading spinner (initial) -->
-      <div id="loadingCards" class="text-center py-20">
-        <div class="inline-block w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full spin mb-4"></div>
-        <p class="text-gray-400 text-sm">Fetching market data…</p>
+      <!-- Data status banner (shown on API errors / stale cache) -->
+      <div id="dataBanner" class="hidden mb-4 flex items-center justify-between gap-3 rounded-xl px-4 py-2.5 border">
+        <div class="flex items-center gap-2 min-w-0">
+          <span id="dataBannerIcon" class="shrink-0 text-base"></span>
+          <p id="dataBannerText" class="text-sm text-gray-300 leading-snug"></p>
+        </div>
+        <button id="dataBannerUpgrade"
+          class="hidden shrink-0 text-xs font-semibold text-orange-400 border border-orange-500/40 px-2.5 py-1 rounded-lg hover:bg-orange-500/10 transition-colors whitespace-nowrap">
+          Upgrade ↗
+        </button>
+      </div>
+
+      <!-- Loading skeleton grid (initial) -->
+      <div id="loadingCards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="skeleton-card">
+          <div class="flex items-start justify-between mb-3">
+            <div class="flex items-center gap-2.5">
+              <div class="skeleton-line w-9 h-9 rounded-xl shrink-0"></div>
+              <div class="space-y-2">
+                <div class="skeleton-line h-3.5 w-28"></div>
+                <div class="skeleton-line h-3 w-20"></div>
+              </div>
+            </div>
+            <div class="skeleton-line h-5 w-16 rounded-md"></div>
+          </div>
+          <div class="skeleton-line h-3 w-full mt-4"></div>
+          <div class="skeleton-line h-14 w-full mt-2 rounded-lg"></div>
+        </div>
+        <div class="skeleton-card">
+          <div class="flex items-start justify-between mb-3">
+            <div class="flex items-center gap-2.5">
+              <div class="skeleton-line w-9 h-9 rounded-xl shrink-0"></div>
+              <div class="space-y-2">
+                <div class="skeleton-line h-3.5 w-24"></div>
+                <div class="skeleton-line h-3 w-16"></div>
+              </div>
+            </div>
+            <div class="skeleton-line h-5 w-14 rounded-md"></div>
+          </div>
+          <div class="skeleton-line h-3 w-full mt-4"></div>
+          <div class="skeleton-line h-14 w-full mt-2 rounded-lg"></div>
+        </div>
+        <div class="skeleton-card hidden sm:block">
+          <div class="flex items-start justify-between mb-3">
+            <div class="flex items-center gap-2.5">
+              <div class="skeleton-line w-9 h-9 rounded-xl shrink-0"></div>
+              <div class="space-y-2">
+                <div class="skeleton-line h-3.5 w-20"></div>
+                <div class="skeleton-line h-3 w-14"></div>
+              </div>
+            </div>
+            <div class="skeleton-line h-5 w-16 rounded-md"></div>
+          </div>
+          <div class="skeleton-line h-3 w-full mt-4"></div>
+          <div class="skeleton-line h-14 w-full mt-2 rounded-lg"></div>
+        </div>
+        <div class="skeleton-card hidden sm:block">
+          <div class="flex items-start justify-between mb-3">
+            <div class="flex items-center gap-2.5">
+              <div class="skeleton-line w-9 h-9 rounded-xl shrink-0"></div>
+              <div class="space-y-2">
+                <div class="skeleton-line h-3.5 w-28"></div>
+                <div class="skeleton-line h-3 w-18"></div>
+              </div>
+            </div>
+            <div class="skeleton-line h-5 w-12 rounded-md"></div>
+          </div>
+          <div class="skeleton-line h-3 w-full mt-4"></div>
+          <div class="skeleton-line h-14 w-full mt-2 rounded-lg"></div>
+        </div>
+        <div class="skeleton-card hidden lg:block">
+          <div class="flex items-start justify-between mb-3">
+            <div class="flex items-center gap-2.5">
+              <div class="skeleton-line w-9 h-9 rounded-xl shrink-0"></div>
+              <div class="space-y-2">
+                <div class="skeleton-line h-3.5 w-24"></div>
+                <div class="skeleton-line h-3 w-16"></div>
+              </div>
+            </div>
+            <div class="skeleton-line h-5 w-16 rounded-md"></div>
+          </div>
+          <div class="skeleton-line h-3 w-full mt-4"></div>
+          <div class="skeleton-line h-14 w-full mt-2 rounded-lg"></div>
+        </div>
+        <div class="skeleton-card hidden lg:block">
+          <div class="flex items-start justify-between mb-3">
+            <div class="flex items-center gap-2.5">
+              <div class="skeleton-line w-9 h-9 rounded-xl shrink-0"></div>
+              <div class="space-y-2">
+                <div class="skeleton-line h-3.5 w-20"></div>
+                <div class="skeleton-line h-3 w-14"></div>
+              </div>
+            </div>
+            <div class="skeleton-line h-5 w-14 rounded-md"></div>
+          </div>
+          <div class="skeleton-line h-3 w-full mt-4"></div>
+          <div class="skeleton-line h-14 w-full mt-2 rounded-lg"></div>
+        </div>
       </div>
 
       <!-- Asset grid -->
@@ -72,16 +170,19 @@
       <!-- Error state -->
       <div id="cardsError" class="hidden text-center py-20">
         <div class="text-5xl mb-4">⚠️</div>
-        <p class="text-gray-200 font-semibold mb-1">Could not load data</p>
-        <p class="text-gray-500 text-sm mb-5">Check your internet connection and try again.</p>
+        <p class="text-gray-200 font-semibold mb-1">Could not reach data sources</p>
+        <p class="text-gray-500 text-sm mb-5">The API may be temporarily unavailable or rate limited. This usually resolves in a minute.</p>
         <button onclick="loadData(true)" class="bg-orange-500 hover:bg-orange-600 px-5 py-2.5 rounded-lg font-medium transition-colors">Try Again</button>
       </div>
 
       <!-- Add button -->
       <div class="text-center mt-6">
         <button onclick="openAddModal()"
-          class="inline-flex items-center gap-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-gray-500 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all">
-          <span class="text-xl leading-none">+</span> Add Asset
+          class="inline-flex items-center gap-2 bg-orange-500/10 hover:bg-orange-500/15 border border-orange-500/30 hover:border-orange-500/50 text-orange-400 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+          </svg>
+          Add Asset
         </button>
       </div>
 
@@ -153,7 +254,7 @@
         </div>
 
         <div class="mb-5">
-          <div class="h-3 score-gradient rounded-full relative">
+          <div class="h-3.5 score-gradient rounded-full relative" style="box-shadow: 0 2px 8px rgba(0,0,0,0.35);">
             <div id="scoreDot"
               class="meter-dot absolute top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-white shadow-lg ring-2 ring-gray-950"
               style="left: 50%;">
@@ -406,7 +507,7 @@
       <!-- Price chart -->
       <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
         <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <div class="flex gap-1" id="tfBtns">
+          <div class="segment-group" id="tfBtns">
             <button class="tf-btn active" data-tf="1M" onclick="switchTF('1M')">1M</button>
             <button class="tf-btn" data-tf="1D"  onclick="switchTF('1D')">1D</button>
             <button class="tf-btn" data-tf="1W"  onclick="switchTF('1W')">1W</button>
@@ -462,9 +563,9 @@
   </main>
 
   <!-- ══════════════════════ INFO MODAL ══════════════════════ -->
-  <div id="infoModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4"
-    style="background:rgba(0,0,0,0.72)" onclick="closeInfo()">
-    <div class="bg-gray-900 border border-gray-700 rounded-2xl max-w-lg w-full p-6 max-h-[80vh] overflow-y-auto"
+  <div id="infoModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop"
+    onclick="closeInfo()">
+    <div class="modal-panel rounded-2xl max-w-lg w-full p-6 max-h-[80vh] overflow-y-auto"
       onclick="event.stopPropagation()">
       <div class="flex justify-between items-start mb-4">
         <h3 id="infoTitle" class="font-bold text-lg leading-tight pr-4">—</h3>
@@ -477,9 +578,9 @@
   </div>
 
   <!-- ══════════════════════ ADD ASSET MODAL ══════════════════════ -->
-  <div id="addModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4"
-    style="background:rgba(0,0,0,0.72)" onclick="closeAddModal()">
-    <div class="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-md p-6 max-h-[85vh] flex flex-col"
+  <div id="addModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop"
+    onclick="closeAddModal()">
+    <div class="modal-panel rounded-2xl w-full max-w-md p-6 max-h-[85vh] flex flex-col"
       onclick="event.stopPropagation()">
       <div class="flex justify-between items-center mb-4">
         <h3 class="font-bold text-lg">Add Asset</h3>
@@ -501,9 +602,9 @@
   </div>
 
   <!-- ══════════════════════ SETTINGS MODAL ══════════════════════ -->
-  <div id="settingsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4"
-    style="background:rgba(0,0,0,0.72)" onclick="closeSettings()">
-    <div class="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto"
+  <div id="settingsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop"
+    onclick="closeSettings()">
+    <div class="modal-panel rounded-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto"
       onclick="event.stopPropagation()">
       <div class="flex justify-between items-center mb-5">
         <h3 class="font-bold text-lg">Scoring Weights</h3>
@@ -588,7 +689,8 @@
           <span id="weightHint" class="text-gray-500 text-xs ml-2">(must equal 100%)</span>
         </div>
         <button id="saveWeightsBtn" onclick="saveSettings()"
-          class="bg-orange-500 hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+          class="bg-orange-500 hover:bg-orange-400 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
+          style="box-shadow: 0 0 0 1px rgba(249,115,22,0.4), 0 4px 12px rgba(249,115,22,0.2);">
           Save
         </button>
       </div>
