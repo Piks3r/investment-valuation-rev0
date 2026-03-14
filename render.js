@@ -127,9 +127,9 @@
       if (isRateLimited) {
         iconEl.textContent = '⏱';
         textEl.textContent = anyCached
-          ? 'API rate limit reached — showing cached data. Upgrade for uninterrupted real-time data.'
-          : 'API rate limit reached — wait a moment then refresh.';
-        upgradeBtn.classList.remove('hidden');
+          ? 'CoinGecko rate limit reached (~30 req/min) — showing cached data. Usually clears within 1 minute.'
+          : 'CoinGecko rate limit reached (~30 req/min) — wait about 1 minute then refresh.';
+        upgradeBtn.classList.add('hidden');
       } else if (isNetwork) {
         iconEl.textContent = '📡';
         textEl.textContent = anyCached
