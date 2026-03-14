@@ -15,27 +15,47 @@
     <div class="max-w-5xl mx-auto flex items-center justify-between gap-4">
 
       <div class="flex items-center gap-3 min-w-0">
-        <div class="shrink-0 w-9 h-9 bg-orange-500 rounded-xl flex items-center justify-center font-black text-base"
-          style="box-shadow: 0 0 0 1px rgba(249,115,22,0.4), 0 4px 12px rgba(249,115,22,0.25);">◈</div>
+        <!-- Logo mark -->
+        <div class="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
+          style="background: linear-gradient(135deg, #ea580c 0%, #f97316 60%, #fb923c 100%); box-shadow: 0 0 0 1px rgba(249,115,22,0.5), 0 4px 14px rgba(249,115,22,0.35);">
+          <svg width="19" height="19" viewBox="0 0 19 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="1.5" y="9.5" width="3.5" height="8" rx="1.2" fill="white" fill-opacity="0.85"/>
+            <rect x="7.25" y="5.5" width="3.5" height="12" rx="1.2" fill="white" fill-opacity="0.93"/>
+            <rect x="13" y="1.5" width="3.5" height="16" rx="1.2" fill="white"/>
+            <path d="M3.25 9 L9 5 L14.75 1.5" stroke="white" stroke-width="1.4" stroke-linecap="round" stroke-opacity="0.5"/>
+          </svg>
+        </div>
         <div class="min-w-0">
-          <h1 class="font-extrabold text-base sm:text-lg leading-tight truncate">Asset Valuation Dashboard</h1>
-          <p class="text-gray-500 text-xs hidden sm:block tracking-wide">Real-time valuation signals</p>
+          <h1 class="font-extrabold text-base sm:text-lg leading-tight truncate tracking-tight"
+            style="background: linear-gradient(110deg, #f1f5f9 30%, #f97316 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+            Asset Valuation
+          </h1>
+          <div class="flex items-center gap-1.5 hidden sm:flex">
+            <span class="live-dot w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+            <p class="text-gray-500 text-xs tracking-wide">Real-time signals</p>
+          </div>
         </div>
       </div>
 
       <div class="flex items-center gap-2">
         <button onclick="openSettings()"
-          class="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/[0.08] hover:border-white/[0.12] px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-          title="Settings">
+          class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all text-gray-300 hover:text-white"
+          style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);"
+          onmouseover="this.style.background='rgba(255,255,255,0.09)';this.style.borderColor='rgba(255,255,255,0.13)'"
+          onmouseout="this.style.background='rgba(255,255,255,0.05)';this.style.borderColor='rgba(255,255,255,0.08)'"
+          title="Scoring Weights">
           <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
           </svg>
-          <span class="hidden sm:inline">Settings</span>
+          <span class="hidden sm:inline">Weights</span>
         </button>
         <button id="refreshBtn" onclick="loadData(true)"
-          class="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/[0.08] hover:border-white/[0.12] px-3 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50">
+          class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all text-gray-300 hover:text-white disabled:opacity-40"
+          style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);"
+          onmouseover="this.style.background='rgba(255,255,255,0.09)';this.style.borderColor='rgba(255,255,255,0.13)'"
+          onmouseout="this.style.background='rgba(255,255,255,0.05)';this.style.borderColor='rgba(255,255,255,0.08)'">
           <svg id="refreshIcon" class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
@@ -174,11 +194,14 @@
       <!-- Add button -->
       <div class="text-center mt-6">
         <button onclick="openAddModal()"
-          class="inline-flex items-center gap-2 bg-orange-500/10 hover:bg-orange-500/15 border border-orange-500/30 hover:border-orange-500/50 text-orange-400 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all">
+          class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
+          style="background: linear-gradient(135deg, rgba(249,115,22,0.12) 0%, rgba(249,115,22,0.06) 100%); border: 1px solid rgba(249,115,22,0.35); color: #fb923c; box-shadow: 0 2px 8px rgba(249,115,22,0.08);"
+          onmouseover="this.style.background='linear-gradient(135deg,rgba(249,115,22,0.2) 0%,rgba(249,115,22,0.1) 100%)';this.style.borderColor='rgba(249,115,22,0.6)'"
+          onmouseout="this.style.background='linear-gradient(135deg,rgba(249,115,22,0.12) 0%,rgba(249,115,22,0.06) 100%)';this.style.borderColor='rgba(249,115,22,0.35)'">
           <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
           </svg>
-          Add Asset
+          Track Asset
         </button>
       </div>
 
@@ -600,7 +623,7 @@
   <!-- ══════════════════════ SETTINGS MODAL ══════════════════════ -->
   <div id="settingsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop"
     onclick="closeSettings()">
-    <div class="modal-panel rounded-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto"
+    <div class="modal-panel rounded-2xl w-full max-w-lg p-4 max-h-[90vh] overflow-y-auto"
       onclick="event.stopPropagation()">
       <div class="flex justify-between items-center mb-5">
         <h3 class="font-bold text-lg">Scoring Weights</h3>
@@ -608,69 +631,58 @@
       </div>
 
       <!-- All Presets (built-in + custom, rendered by JS) -->
-      <p class="text-xs text-gray-500 mb-2 font-medium uppercase tracking-wide">Presets</p>
-      <div id="allPresetsRow" class="flex flex-wrap gap-2 mb-4"></div>
+      <p class="text-xs text-gray-500 mb-1.5 font-medium uppercase tracking-wide">Presets</p>
+      <div id="allPresetsRow" class="flex flex-wrap gap-2 mb-3"></div>
 
-      <!-- Preset description (shown when built-in preset selected) -->
-      <div id="presetDescBox" class="hidden mb-4 bg-gray-800/60 border border-gray-700 rounded-xl px-4 py-3">
-        <p id="presetDescTagline" class="text-xs font-semibold text-orange-400 mb-1"></p>
-        <p id="presetDescText" class="text-xs text-gray-400 leading-relaxed mb-1.5"></p>
-        <p id="presetDescBestFor" class="text-xs text-gray-500 italic"></p>
-      </div>
-
-      <!-- Save / Edit Custom Preset -->
-      <div class="flex gap-2 mb-5">
+      <!-- Custom Preset Name -->
+      <div class="flex gap-2 mb-3">
         <input type="text" id="customPresetName" maxlength="24" placeholder="Name your preset…"
           class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 transition-colors" />
         <button id="deletePresetBtn" onclick="deleteActiveCustomPreset()"
           class="hidden bg-gray-700 hover:bg-red-900/60 border border-gray-600 hover:border-red-700 px-3 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap text-gray-400 hover:text-red-400">
           Delete
         </button>
-        <button onclick="saveCustomPreset()"
-          class="bg-gray-700 hover:bg-gray-600 border border-gray-600 hover:border-orange-500 px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap">
-          Save Preset
-        </button>
       </div>
 
       <!-- Sliders -->
-      <div class="space-y-4 mb-5">
+      <div class="grid grid-cols-2 gap-x-5 gap-y-2.5 mb-4">
         <div>
-          <div class="flex justify-between text-sm mb-1.5">
+          <div class="flex justify-between text-xs mb-1">
             <span class="text-gray-300 font-medium">Fear &amp; Greed Index</span>
             <span id="wFngDisplay" class="text-orange-400 font-bold tabular-nums">25%</span>
           </div>
           <input type="range" id="wFng" min="0" max="100" step="5" value="25" oninput="updateWeightTotal()" class="w-full" />
         </div>
         <div>
-          <div class="flex justify-between text-sm mb-1.5">
+          <div class="flex justify-between text-xs mb-1">
             <span class="text-gray-300 font-medium">RSI (14-Day)</span>
             <span id="wRsiDisplay" class="text-orange-400 font-bold tabular-nums">25%</span>
           </div>
           <input type="range" id="wRsi" min="0" max="100" step="5" value="25" oninput="updateWeightTotal()" class="w-full" />
         </div>
         <div>
-          <div class="flex justify-between text-sm mb-1.5">
+          <div class="flex justify-between text-xs mb-1">
             <span class="text-gray-300 font-medium">Price vs 200d MA</span>
             <span id="wVs200Display" class="text-orange-400 font-bold tabular-nums">20%</span>
           </div>
           <input type="range" id="wVs200" min="0" max="100" step="5" value="20" oninput="updateWeightTotal()" class="w-full" />
         </div>
         <div>
-          <div class="flex justify-between text-sm mb-1.5">
+          <div class="flex justify-between text-xs mb-1">
             <span class="text-gray-300 font-medium">Price vs 50d MA</span>
             <span id="wVs50Display" class="text-orange-400 font-bold tabular-nums">15%</span>
           </div>
           <input type="range" id="wVs50" min="0" max="100" step="5" value="15" oninput="updateWeightTotal()" class="w-full" />
         </div>
         <div>
-          <div class="flex justify-between text-sm mb-1.5">
+          <div class="flex justify-between text-xs mb-1">
             <span class="text-gray-300 font-medium">30-Day Change</span>
             <span id="wChg30Display" class="text-orange-400 font-bold tabular-nums">10%</span>
           </div>
           <input type="range" id="wChg30" min="0" max="100" step="5" value="10" oninput="updateWeightTotal()" class="w-full" />
         </div>
         <div>
-          <div class="flex justify-between text-sm mb-1.5">
+          <div class="flex justify-between text-xs mb-1">
             <span class="text-gray-300 font-medium">BTC Dominance</span>
             <span id="wDomDisplay" class="text-orange-400 font-bold tabular-nums">5%</span>
           </div>
@@ -679,12 +691,12 @@
       </div>
 
       <!-- Total + save -->
-      <div class="flex items-center justify-between pt-4 border-t border-gray-800">
+      <div class="flex items-center justify-between pt-3 border-t border-gray-800">
         <div class="text-sm">
           Total: <span id="weightTotal" class="font-bold tabular-nums">100%</span>
           <span id="weightHint" class="text-gray-500 text-xs ml-2">(must equal 100%)</span>
         </div>
-        <button id="saveWeightsBtn" onclick="saveSettings()"
+        <button id="saveWeightsBtn" onclick="saveWeights()"
           class="bg-orange-500 hover:bg-orange-400 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
           style="box-shadow: 0 0 0 1px rgba(249,115,22,0.4), 0 4px 12px rgba(249,115,22,0.2);">
           Save

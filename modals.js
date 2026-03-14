@@ -266,9 +266,11 @@
     function _presetBtnClass(name) {
       const isActive = name === activePreset;
       return 'py-2 px-4 rounded-lg text-sm font-semibold border transition-all ' + (
-        isActive
-          ? 'bg-gray-700 border-orange-500 text-orange-400'
-          : 'bg-gray-800 hover:bg-gray-700 border-gray-700 hover:border-orange-500 text-gray-300'
+        !isActive
+          ? 'bg-gray-800 hover:bg-gray-700 border-gray-700 hover:border-orange-500 text-gray-300'
+          : name === '__custom__'
+          ? 'bg-gray-700 border-amber-400 text-amber-300'
+          : 'bg-gray-700 border-orange-500 text-orange-400'
       );
     }
 
@@ -278,15 +280,17 @@
       const builtIns = ['standard', 'technical', 'sentiment'];
       const customs  = Object.keys(customPresets);
 
+      const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+      const driftBtn = (activePreset === '__custom__' && basedOnPreset)
+        ? `<button class="${_presetBtnClass('__custom__')} cursor-default">✏ Custom (${cap(basedOnPreset)})</button>`
+        : '';
+
       row.innerHTML = [
-        ...builtIns.map(name => `
-          <button onclick="applyWeightPreset(${JSON.stringify(name)})" class="${_presetBtnClass(name)}">
-            ${name.charAt(0).toUpperCase() + name.slice(1)}
-          </button>`),
-        ...customs.map(name => `
-          <button onclick="selectCustomPreset(${JSON.stringify(name)})" class="${_presetBtnClass(name)}">
-            ${name}
-          </button>`),
+        driftBtn,
+        ...builtIns.map(name =>
+          `<button onclick="applyWeightPreset('${name}')" class="${_presetBtnClass(name)}">${cap(name)}</button>`),
+        ...customs.map(name =>
+          `<button onclick="selectCustomPreset('${name.replace(/'/g, "&#39;")}')" class="${_presetBtnClass(name)}">${name}</button>`),
       ].join('');
     }
 
@@ -305,28 +309,30 @@
     function applyWeightPreset(name) {
       const p = WEIGHT_PRESETS[name];
       if (!p) return;
+      // Set state BEFORE setWeightSliders so updateWeightTotal doesn't false-detect drift
+      activePreset  = name;
+      basedOnPreset = null;
       setWeightSliders(p);
-      activePreset = name;
       try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(p)); } catch {}
       renderCardsView(currentFilter);
       renderAllPresetButtons();
       document.getElementById('customPresetName').value = '';
       document.getElementById('deletePresetBtn').classList.add('hidden');
-      _updatePresetDescription(name);
     }
 
     // Custom preset click — apply weights, mark active, enter edit mode
     function selectCustomPreset(name) {
       const p = loadCustomPresets()[name];
       if (!p) return;
+      // Set state BEFORE setWeightSliders so updateWeightTotal doesn't false-detect drift
+      activePreset  = name;
+      basedOnPreset = null;
       setWeightSliders(p);
-      activePreset = name;
       try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(p)); } catch {}
       renderCardsView(currentFilter);
       renderAllPresetButtons();
       document.getElementById('customPresetName').value = name;
       document.getElementById('deletePresetBtn').classList.remove('hidden');
-      _updatePresetDescription(null);
     }
 
     function saveCustomPreset() {
@@ -347,12 +353,42 @@
       const presets = loadCustomPresets();
       presets[name] = w;
       saveCustomPresets(presets);
-      activePreset = name;
+      try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(w)); } catch {}
+      basedOnPreset = null;
+      activePreset  = name;
       nameInput.value = '';
       document.getElementById('deletePresetBtn').classList.add('hidden');
       renderAllPresetButtons();
       nameInput.placeholder = 'Saved!';
       setTimeout(() => { nameInput.placeholder = 'Name your preset…'; }, 1200);
+    }
+
+    // Unified bottom-Save handler: saves as named custom preset if name is set, then applies
+    function saveWeights() {
+      const nameInput = document.getElementById('customPresetName');
+      const name = nameInput.value.trim();
+      const builtIns = ['standard', 'technical', 'sentiment'];
+
+      if (name) {
+        // Save (or update) as named custom preset
+        const w = {
+          fng:   parseInt(document.getElementById('wFng').value),
+          rsi:   parseInt(document.getElementById('wRsi').value),
+          vs200: parseInt(document.getElementById('wVs200').value),
+          vs50:  parseInt(document.getElementById('wVs50').value),
+          chg30: parseInt(document.getElementById('wChg30').value),
+          dom:   parseInt(document.getElementById('wDom').value),
+        };
+        const total = Object.values(w).reduce((a, b) => a + b, 0);
+        if (total !== 100) return;
+        const presets = loadCustomPresets();
+        presets[name] = w;
+        saveCustomPresets(presets);
+        activePreset  = name;
+        basedOnPreset = null;
+      }
+
+      saveSettings(); // handles weight save + feedback + close + re-render
     }
 
     function deleteCustomPreset(name) {
@@ -374,7 +410,8 @@
       // Detect which preset (if any) matches current saved settings
       const current = loadSettings();
       const all = { ...WEIGHT_PRESETS, ...loadCustomPresets() };
-      activePreset = null;
+      activePreset  = null;
+      basedOnPreset = null;
       for (const [name, weights] of Object.entries(all)) {
         if (JSON.stringify(weights) === JSON.stringify(current)) {
           activePreset = name;
@@ -382,21 +419,29 @@
         }
       }
       setWeightSliders(current);
-      document.getElementById('customPresetName').value = '';
-      document.getElementById('deletePresetBtn').classList.add('hidden');
+      const builtIns = ['standard', 'technical', 'sentiment'];
+      if (activePreset && !builtIns.includes(activePreset)) {
+        document.getElementById('customPresetName').value = activePreset;
+        document.getElementById('deletePresetBtn').classList.remove('hidden');
+      } else {
+        document.getElementById('customPresetName').value = '';
+        document.getElementById('deletePresetBtn').classList.add('hidden');
+      }
       renderAllPresetButtons();
-      _updatePresetDescription(activePreset);
       document.getElementById('settingsModal').classList.remove('hidden');
     }
     function closeSettings() { document.getElementById('settingsModal').classList.add('hidden'); }
 
     function updateWeightTotal() {
-      const ids = ['wFng','wRsi','wVs200','wVs50','wChg30','wDom'];
+      const ids        = ['wFng','wRsi','wVs200','wVs50','wChg30','wDom'];
+      const keys       = ['fng','rsi','vs200','vs50','chg30','dom'];
       const displayIds = ['wFngDisplay','wRsiDisplay','wVs200Display','wVs50Display','wChg30Display','wDomDisplay'];
       let total = 0;
+      const current = {};
       ids.forEach((id, i) => {
         const val = parseInt(document.getElementById(id).value);
         total += val;
+        current[keys[i]] = val;
         document.getElementById(displayIds[i]).textContent = val + '%';
       });
       const totalEl = document.getElementById('weightTotal');
@@ -404,6 +449,28 @@
       totalEl.textContent = total + '%';
       totalEl.style.color = total === 100 ? '#10b981' : '#ef4444';
       saveBtn.disabled    = total !== 100;
+
+      // Auto-deselect preset if sliders no longer match it
+      if (activePreset && activePreset !== '__custom__') {
+        const builtIns = ['standard', 'technical', 'sentiment'];
+        const all    = { ...WEIGHT_PRESETS, ...loadCustomPresets() };
+        const preset = all[activePreset];
+        if (!preset || JSON.stringify(preset) !== JSON.stringify(current)) {
+          if (builtIns.includes(activePreset)) {
+            basedOnPreset = activePreset;
+            activePreset  = '__custom__';
+            const nameInput = document.getElementById('customPresetName');
+            if (!nameInput.value.trim()) {
+              nameInput.value = 'My ' + basedOnPreset.charAt(0).toUpperCase() + basedOnPreset.slice(1);
+            }
+            nameInput.focus();
+            nameInput.select();
+          } else {
+            // Custom preset — keep it highlighted, user is editing it in-place
+          }
+          renderAllPresetButtons();
+        }
+      }
     }
 
     // ── Filter ────────────────────────────────────────────────────────────

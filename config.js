@@ -38,6 +38,7 @@
     let searchTimer   = null;
     let _searchResults = [];
     let activePreset  = null;
+    let basedOnPreset = null;   // which built-in we drifted away from
 
     // ── Timeframe config ─────────────────────────────────────────────────
     const TF_CONFIG = {
