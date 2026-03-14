@@ -113,7 +113,7 @@
     function _updateDataBanner(errorTypes, anyCached) {
       const banner = document.getElementById('dataBanner');
       if (!banner) return;
-      if (errorTypes.size === 0) { banner.classList.add('hidden'); return; }
+      if (errorTypes.size === 0 || anyCached) { banner.classList.add('hidden'); return; }
 
       const isRateLimited = errorTypes.has('rate_limited');
       const isNetwork     = !isRateLimited && errorTypes.has('network');
