@@ -137,12 +137,11 @@ body { font-family: 'Inter', system-ui, sans-serif; }
   color: #6b7280;
   font-size: 14px;
   line-height: 1;
-  opacity: 0;
+  opacity: 0.45;
   transition: all 0.15s;
   z-index: 1;
 }
-.asset-card:hover .asset-card-remove { opacity: 1; }
-.asset-card-remove:hover { color: #ef4444; background: rgba(239,68,68,0.12); }
+.asset-card-remove:hover { opacity: 1; color: #ef4444; background: rgba(239,68,68,0.12); }
 
 /* ── Skeleton loading ──────────────────────────────────────────────────── */
 .skeleton-card {
