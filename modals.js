@@ -132,7 +132,7 @@
     }
 
     function openAddModal() {
-      activeCategory = 'all';
+      activeCategory = (currentFilter || 'all').toLowerCase();
       document.getElementById('addModal').classList.remove('hidden');
       document.getElementById('assetSearchInput').value = '';
       document.getElementById('searchStatus').classList.add('hidden');
@@ -226,6 +226,7 @@
         type:         def.type,
         coingeckoId:  def.coingeckoId || null,
         yahooSymbol:  def.yahooSymbol || null,
+        image:        def.thumb || null,
       };
       assets.push(asset);
       saveTrackedAssets(assets);
@@ -429,8 +430,63 @@
       }
       renderAllPresetButtons();
       document.getElementById('settingsModal').classList.remove('hidden');
+      updateNotifUI();
     }
     function closeSettings() { document.getElementById('settingsModal').classList.add('hidden'); }
+
+    function openAlertsModal() {
+      renderAlertsModal();
+      document.getElementById('alertsModal').classList.remove('hidden');
+    }
+    function closeAlertsModal() { document.getElementById('alertsModal').classList.add('hidden'); }
+    function renderAlertsModal() {
+      const assets = loadTrackedAssets();
+      const all = loadAlerts();
+      const active = assets.filter(a => {
+        const cfg = all[a.id];
+        return cfg && (cfg.priceBelow != null || cfg.scoreBelow != null);
+      });
+      const body = document.getElementById('alertsModalBody');
+      if (!active.length) {
+        body.innerHTML = '<p class="text-gray-500 text-sm text-center py-6">No alerts saved yet.<br><span class="text-gray-600 text-xs">Open any asset and set a price or score alert.</span></p>';
+        return;
+      }
+      body.innerHTML = `
+        <div class="space-y-2 mb-4">
+          ${active.map(a => {
+            const cfg = all[a.id];
+            const priceTag = cfg.priceBelow != null
+              ? `<span class="bg-gray-800 border border-gray-700 rounded px-2 py-0.5 text-xs text-gray-300">Price &lt; ${fmtPrice(cfg.priceBelow)}</span>`
+              : '';
+            const scoreTag = cfg.scoreBelow != null
+              ? `<span class="bg-gray-800 border border-gray-700 rounded px-2 py-0.5 text-xs text-gray-300">Score &lt; ${cfg.scoreBelow}</span>`
+              : '';
+            return `
+              <div class="flex items-center justify-between gap-3 bg-gray-900 border border-gray-800 rounded-xl px-4 py-3">
+                <div class="min-w-0">
+                  <div class="text-sm font-semibold truncate">${a.name} <span class="text-gray-500 font-normal text-xs">${a.symbol}</span></div>
+                  <div class="flex flex-wrap gap-1.5 mt-1.5">${priceTag}${scoreTag}</div>
+                </div>
+                <button onclick="clearAlertFromModal('${a.id}')"
+                  class="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-400 transition-colors">
+                  Clear
+                </button>
+              </div>`;
+          }).join('')}
+        </div>
+        <button onclick="clearAllAlerts()"
+          class="w-full py-2 rounded-lg text-xs font-semibold bg-gray-800 hover:bg-red-900/30 border border-gray-700 hover:border-red-700/50 text-gray-500 hover:text-red-400 transition-colors">
+          Clear All Alerts
+        </button>`;
+    }
+    function clearAlertFromModal(id) {
+      setAlertForAsset(id, { priceBelow: null, scoreBelow: null });
+      renderAlertsModal();
+    }
+    function clearAllAlerts() {
+      try { localStorage.removeItem('asset_alerts_v1'); } catch {}
+      renderAlertsModal();
+    }
 
     function updateWeightTotal() {
       const ids        = ['wFng','wRsi','wVs200','wVs50','wChg30','wDom'];
@@ -473,6 +529,48 @@
       }
     }
 
+    // ── Notifications ─────────────────────────────────────────────────────
+    function updateNotifUI() {
+      const btn  = document.getElementById('notifToggleBtn');
+      const note = document.getElementById('notifPermissionNote');
+      if (!btn) return;
+      const supported = 'Notification' in window;
+      const perm    = supported ? Notification.permission : 'denied';
+      const enabled = getNotifEnabled();
+      note.classList.add('hidden');
+      if (!supported) {
+        btn.textContent = 'Not supported';
+        btn.className   = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-700 text-gray-500 cursor-not-allowed';
+        btn.disabled    = true;
+        return;
+      }
+      if (perm === 'denied') {
+        btn.textContent = 'Blocked';
+        btn.className   = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-700 text-red-400 cursor-not-allowed';
+        btn.disabled    = true;
+        note.classList.remove('hidden');
+        return;
+      }
+      btn.disabled = false;
+      if (perm === 'granted' && enabled) {
+        btn.textContent = 'Alerts On';
+        btn.className   = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-emerald-100 transition-colors';
+      } else {
+        btn.textContent = perm === 'default' ? 'Enable Alerts' : 'Alerts Off';
+        btn.className   = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-700 hover:bg-gray-600 text-gray-300 transition-colors';
+      }
+    }
+    async function toggleNotifications() {
+      if (!('Notification' in window)) return;
+      if (Notification.permission === 'default') {
+        const result = await Notification.requestPermission();
+        if (result === 'granted') setNotifEnabled(true);
+      } else if (Notification.permission === 'granted') {
+        setNotifEnabled(!getNotifEnabled());
+      }
+      updateNotifUI();
+    }
+
     // ── Filter ────────────────────────────────────────────────────────────
     function setFilter(f) {
       currentFilter = f;
@@ -510,6 +608,7 @@
         closeInfo();
         closeAddModal();
         closeSettings();
+        closeAlertsModal();
       }
     });
 

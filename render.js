@@ -1,3 +1,17 @@
+    // ── Asset avatar helper ───────────────────────────────────────────────
+    function assetAvatar(asset, t) {
+      const sym3 = asset.symbol.slice(0, 3);
+      const fallbackStyle = `background:${t.bg};border:1px solid ${t.border};color:${t.color}`;
+      const imgSrc = asset.image || `https://assets.parqet.com/logos/symbol/${encodeURIComponent(asset.symbol)}?format=png`;
+
+      return `<div class="shrink-0 w-9 h-9 relative flex items-center justify-center font-bold text-sm">
+        <span class="absolute inset-0 rounded-xl flex items-center justify-center"
+              style="display:none;${fallbackStyle}">${sym3}</span>
+        <img src="${imgSrc}" class="w-full h-full object-contain"
+             onerror="this.style.display=&#39;none&#39;;this.previousElementSibling.style.display=&#39;flex&#39;" alt="">
+      </div>`;
+    }
+
     // ── Badge helper ──────────────────────────────────────────────────────
     function setBadge(id, score) {
       const t  = tier(score);
@@ -99,6 +113,9 @@
         const scores = computeScores(assetData);
         const comp   = composite(scores, weights);
         const t      = tier(comp);
+        checkTierChange(asset, t.label, comp, assetData.price);
+        checkPriceAlerts(asset, comp, assetData.price);
+        appendScoreHistory(asset.id, comp);
         grid.insertAdjacentHTML('beforeend', renderAssetCard(asset, assetData, scores, comp, t));
       });
 
@@ -147,22 +164,32 @@
       banner.classList.remove('hidden');
     }
 
+    function scoreSparklineSVG(id, color) {
+      try {
+        const hist = JSON.parse(localStorage.getItem('score_history_' + id) || '[]');
+        if (hist.length < 3) return '';
+        return sparklineSVG(hist.slice(-30).map(h => h.score), color);
+      } catch { return ''; }
+    }
+
     function renderAssetCard(asset, assetData, scores, comp, t) {
       const { price, c24h } = assetData;
       const typeBadgeColor = asset.type === 'crypto' ? 'text-blue-400' : asset.type === 'etf' ? 'text-purple-400' : 'text-green-400';
       const typeLabel = asset.type.toUpperCase();
 
       const sparkline = sparklineSVG(assetData.prices || [], t.color);
+      const scoreSpark = scoreSparklineSVG(asset.id, t.color);
 
       return `
       <div class="asset-card" onclick="expandAsset('${asset.id}')" style="border-color:${t.border}; border-top-color:${t.color}; border-top-width:2px;">
-        <button class="asset-card-remove" onclick="event.stopPropagation();removeAsset('${asset.id}')" title="Remove">×</button>
+        <button class="asset-card-remove" onclick="event.stopPropagation();removeAsset('${asset.id}')" title="Remove">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+          </svg>
+        </button>
         <div class="flex items-start justify-between mb-2">
-          <div class="flex items-center gap-2.5 min-w-0">
-            <div class="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm"
-              style="background:${t.bg};border:1px solid ${t.border};color:${t.color}">
-              ${asset.symbol.slice(0,3)}
-            </div>
+          <div class="flex items-center gap-2.5 min-w-0 ml-4">
+            ${assetAvatar(asset, t)}
             <div class="min-w-0">
               <div class="font-bold text-sm truncate">${asset.name}</div>
               <div class="text-xs text-gray-500">${asset.symbol} · <span class="${typeBadgeColor}">${typeLabel}</span></div>
@@ -178,6 +205,7 @@
           <span>${colorPct(c24h)} <span class="text-gray-600 text-xs">(24h)</span></span>
         </div>
         <div class="mt-2.5" style="opacity:0.9">${sparkline}</div>
+        ${scoreSpark ? `<div class="mt-1" style="opacity:0.75">${scoreSpark}</div><div class="text-gray-600 text-[10px] mt-0.5">score trend</div>` : ''}
       </div>`;
     }
 
@@ -330,6 +358,22 @@
       } else {
         trendEl.classList.add('hidden');
       }
+
+      // Historical score context
+      const stats = getScoreStats(asset.id);
+      const statsEl = document.getElementById('scoreHistoryStats');
+      if (stats) {
+        statsEl.classList.remove('hidden');
+        const rel = comp < stats.avg - 0.5 ? ' · below your avg' : comp > stats.avg + 0.5 ? ' · above your avg' : ' · near your avg';
+        statsEl.textContent = `Recorded history (${stats.count}): avg ${stats.avg.toFixed(1)} · min ${stats.min.toFixed(1)} · max ${stats.max.toFixed(1)}${rel}`;
+      } else {
+        statsEl.classList.add('hidden');
+      }
+
+      // Price alert inputs
+      const savedAlert = getAlertForAsset(asset.id);
+      document.getElementById('alertPriceInput').value = savedAlert.priceBelow != null ? savedAlert.priceBelow : '';
+      document.getElementById('alertScoreInput').value = savedAlert.scoreBelow != null ? savedAlert.scoreBelow : '';
 
       // DCA Signal
       renderDcaSection(comp);
@@ -508,6 +552,32 @@
         btn.classList.toggle('active', btn.dataset.tf === '1M');
       });
       renderChart(tss.slice(-30), prices.slice(-30), ma50val, ma200val, '1M', asset);
+    }
+
+    // ── Price alert helpers ───────────────────────────────────────────────
+    function saveAssetAlert() {
+      if (!expandedAssetId) return;
+      const rawPrice = document.getElementById('alertPriceInput').value.trim();
+      const rawScore = document.getElementById('alertScoreInput').value.trim();
+      const cfg = {
+        priceBelow: rawPrice ? parseFloat(rawPrice) : null,
+        scoreBelow: rawScore ? parseFloat(rawScore) : null,
+      };
+      setAlertForAsset(expandedAssetId, cfg);
+      const btn = document.getElementById('alertSaveBtn');
+      btn.textContent = 'Saved ✓';
+      setTimeout(() => { btn.textContent = 'Save Alert'; }, 1500);
+      if (cfg.priceBelow != null || cfg.scoreBelow != null) {
+        if ('Notification' in window && Notification.permission === 'default') {
+          Notification.requestPermission().then(r => { if (r === 'granted') setNotifEnabled(true); });
+        }
+      }
+    }
+    function clearAssetAlert() {
+      if (!expandedAssetId) return;
+      setAlertForAsset(expandedAssetId, { priceBelow: null, scoreBelow: null });
+      document.getElementById('alertPriceInput').value = '';
+      document.getElementById('alertScoreInput').value = '';
     }
 
     // ── Metrics summary table ─────────────────────────────────────────────

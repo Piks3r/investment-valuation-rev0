@@ -38,6 +38,18 @@
       </div>
 
       <div class="flex items-center gap-2">
+        <button onclick="openAlertsModal()"
+          class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all text-gray-300 hover:text-white"
+          style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);"
+          onmouseover="this.style.background='rgba(255,255,255,0.09)';this.style.borderColor='rgba(255,255,255,0.13)'"
+          onmouseout="this.style.background='rgba(255,255,255,0.05)';this.style.borderColor='rgba(255,255,255,0.08)'"
+          title="Alerts">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+          </svg>
+          <span class="hidden sm:inline">Alerts</span>
+        </button>
         <button onclick="openSettings()"
           class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all text-gray-300 hover:text-white"
           style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);"
@@ -269,6 +281,7 @@
             <div id="desktopUpdated" class="text-gray-600 text-xs mt-1 hidden sm:block">—</div>
             <div id="convictionPill" class="hidden mt-2 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-800 border border-gray-700 text-gray-300"></div>
             <div id="scoreTrendLine" class="hidden text-xs text-gray-500 mt-1.5"></div>
+            <div id="scoreHistoryStats" class="hidden text-xs text-gray-600 mt-1"></div>
           </div>
         </div>
 
@@ -294,6 +307,32 @@
           <button onclick="openInfo('dcas')" class="text-gray-600 hover:text-gray-400 text-sm leading-none transition-colors" title="How is the DCA signal calculated?">ⓘ</button>
         </div>
         <div id="dcaContent"></div>
+      </div>
+
+      <!-- ─── PRICE ALERTS ─── -->
+      <div id="alertCard" class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+        <div class="flex items-center gap-1.5 mb-4">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500">Price Alerts</h3>
+          <span class="text-gray-600 text-xs">(requires notifications enabled)</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+          <div>
+            <label class="text-xs text-gray-500 block mb-1">Alert when price drops below</label>
+            <input id="alertPriceInput" type="number" min="0" step="any" placeholder="e.g. 80000"
+                   class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-orange-500">
+          </div>
+          <div>
+            <label class="text-xs text-gray-500 block mb-1">Alert when score drops below (1–10)</label>
+            <input id="alertScoreInput" type="number" min="0" max="10" step="0.5" placeholder="e.g. 3"
+                   class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-orange-500">
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <button id="alertSaveBtn" onclick="saveAssetAlert()"
+                  class="px-4 py-1.5 rounded-lg text-xs font-semibold bg-orange-500 hover:bg-orange-600 text-white transition-colors">Save Alert</button>
+          <button onclick="clearAssetAlert()"
+                  class="px-4 py-1.5 rounded-lg text-xs font-semibold bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-400 transition-colors">Clear</button>
+        </div>
       </div>
 
       <!-- Metrics table -->
@@ -702,6 +741,33 @@
           Save
         </button>
       </div>
+
+      <!-- Zone Change Alerts -->
+      <div class="mt-4 pt-3 border-t border-gray-800">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <p class="text-sm font-medium text-gray-300">Zone Change Alerts</p>
+            <p class="text-xs text-gray-500 mt-0.5">Notify when an asset moves to a new valuation zone</p>
+          </div>
+          <button id="notifToggleBtn" onclick="toggleNotifications()"></button>
+        </div>
+        <p id="notifPermissionNote" class="hidden mt-2 text-xs text-yellow-600">
+          Notifications are blocked in your browser. Allow them in browser settings to enable alerts.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════ ALERTS MODAL ══════════════════════ -->
+  <div id="alertsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop"
+    onclick="closeAlertsModal()">
+    <div class="modal-panel rounded-2xl w-full max-w-lg p-6 max-h-[85vh] flex flex-col"
+      onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between mb-5">
+        <h2 class="text-base font-bold">Saved Alerts</h2>
+        <button onclick="closeAlertsModal()" class="text-gray-500 hover:text-gray-300 transition-colors text-xl leading-none">✕</button>
+      </div>
+      <div id="alertsModalBody" class="overflow-y-auto flex-1"></div>
     </div>
   </div>
 

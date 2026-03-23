@@ -275,6 +275,90 @@
       return null;
     }
 
+    // ── Notification helpers ───────────────────────────────────────────────
+    function getNotifEnabled() {
+      return localStorage.getItem('notif_enabled_v1') === 'true';
+    }
+    function setNotifEnabled(val) {
+      try { localStorage.setItem('notif_enabled_v1', val ? 'true' : 'false'); } catch {}
+    }
+    function getLastNotifTier(id) {
+      try {
+        const raw = localStorage.getItem('notif_last_tiers_v1');
+        if (!raw) return null;
+        return JSON.parse(raw)[id] ?? null;
+      } catch { return null; }
+    }
+    function setLastNotifTier(id, label) {
+      try {
+        const raw = localStorage.getItem('notif_last_tiers_v1');
+        const map = raw ? JSON.parse(raw) : {};
+        map[id] = label;
+        localStorage.setItem('notif_last_tiers_v1', JSON.stringify(map));
+      } catch {}
+    }
+    function checkTierChange(asset, newTierLabel, score, price) {
+      const prev = getLastNotifTier(asset.id);
+      setLastNotifTier(asset.id, newTierLabel);
+      if (!prev || prev === newTierLabel) return;           // first load or no change
+      if (!getNotifEnabled()) return;
+      if (!('Notification' in window) || Notification.permission !== 'granted') return;
+      new Notification(`${asset.name} moved to ${newTierLabel}`, {
+        body: `${prev} → ${newTierLabel}  ·  ${fmtPrice(price)}  ·  Score ${score.toFixed(1)}/10`,
+        icon: asset.image || undefined,
+        tag: 'tier-' + asset.id,
+      });
+    }
+
+    function loadAlerts() {
+      try { return JSON.parse(localStorage.getItem('asset_alerts_v1') || '{}'); } catch { return {}; }
+    }
+    function getAlertForAsset(id) {
+      return loadAlerts()[id] || { priceBelow: null, scoreBelow: null };
+    }
+    function setAlertForAsset(id, cfg) {
+      const a = loadAlerts(); a[id] = cfg;
+      try { localStorage.setItem('asset_alerts_v1', JSON.stringify(a)); } catch {}
+    }
+    function checkPriceAlerts(asset, comp, price) {
+      if (!getNotifEnabled()) return;
+      if (!('Notification' in window) || Notification.permission !== 'granted') return;
+      const cfg = getAlertForAsset(asset.id);
+      const COOLDOWN = 60 * 60 * 1000; // 1 hr per alert type
+      let fired = {};
+      try { fired = JSON.parse(localStorage.getItem('notif_alert_fired_v1') || '{}'); } catch {}
+      const now = Date.now();
+      if (cfg.priceBelow != null && price <= cfg.priceBelow) {
+        if (now - (fired[asset.id + '_price'] || 0) > COOLDOWN) {
+          new Notification(`${asset.name} price alert`, {
+            body: `Price ${fmtPrice(price)} dropped below your alert of ${fmtPrice(cfg.priceBelow)}`,
+            icon: asset.image || undefined, tag: 'price-' + asset.id,
+          });
+          fired[asset.id + '_price'] = now;
+        }
+      }
+      if (cfg.scoreBelow != null && comp <= cfg.scoreBelow) {
+        if (now - (fired[asset.id + '_score'] || 0) > COOLDOWN) {
+          new Notification(`${asset.name} valuation alert`, {
+            body: `Score ${comp.toFixed(1)}/10 (${tier(comp).label}) dropped below your alert of ${cfg.scoreBelow}`,
+            icon: asset.image || undefined, tag: 'score-' + asset.id,
+          });
+          fired[asset.id + '_score'] = now;
+        }
+      }
+      try { localStorage.setItem('notif_alert_fired_v1', JSON.stringify(fired)); } catch {}
+    }
+
+    function getScoreStats(id) {
+      try {
+        const hist = JSON.parse(localStorage.getItem('score_history_' + id) || '[]');
+        if (hist.length < 3) return null;
+        const scores = hist.map(h => h.score);
+        const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+        return { avg, min: Math.min(...scores), max: Math.max(...scores), count: scores.length };
+      } catch { return null; }
+    }
+
     // ── API helpers ───────────────────────────────────────────────────────
     async function fetchWithProxy(url) {
       try {
@@ -346,6 +430,7 @@
         dom, c30, c7, c1h, c1y, c24h, athPct,
         marketCap, volume, circSupply,
         coinId: asset.coingeckoId,
+        image: coin.image?.small || null,
       };
     }
 
@@ -393,6 +478,18 @@
       const data = asset.type === 'crypto'
         ? await fetchCryptoData(asset)
         : await fetchStockData(asset);
+
+      // Persist higher-quality image URL back to stored asset
+      if (data.image && !asset.image) {
+        const tracked = loadTrackedAssets();
+        const idx = tracked.findIndex(a => a.id === asset.id);
+        if (idx !== -1) {
+          tracked[idx].image = data.image;
+          saveTrackedAssets(tracked);
+          asset.image = data.image;
+        }
+      }
+
       setAssetCache(asset.id, data);
       return data;
     }
