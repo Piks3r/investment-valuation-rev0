@@ -108,6 +108,16 @@
       const pctB  = std === 0 ? 0.5 : (price - lower) / (upper - lower);
       return { pctB, upper, lower, mean };
     }
+    function rollingBollinger(prices, period = 20) {
+      return prices.map((_, i) => {
+        if (i < period - 1) return null;
+        const slice = prices.slice(i - period + 1, i + 1);
+        const mean  = slice.reduce((a, b) => a + b, 0) / period;
+        const std   = Math.sqrt(slice.reduce((a, b) => a + (b - mean) ** 2, 0) / period);
+        return { upper: mean + 2 * std, lower: mean - 2 * std };
+      });
+    }
+
     function scoreBollinger(pctB) {
       if (pctB <= 0)   return lerp(pctB, -0.5, 0,   0,   1);
       if (pctB <= 0.2) return lerp(pctB,  0,   0.2, 1,   4);
@@ -238,7 +248,8 @@
       try {
         const raw = localStorage.getItem('asset_cache_' + id);
         if (!raw) return null;
-        return JSON.parse(raw).data ?? null;
+        const { ts, data } = JSON.parse(raw);
+        return data ? { data, ts } : null;
       } catch {}
       return null;
     }
@@ -436,8 +447,14 @@
 
     async function fetchStockData(asset) {
       const sym = asset.yahooSymbol;
-      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?range=200d&interval=1d`;
-      const json = await yahooFetch(url);
+      const path = `/v8/finance/chart/${sym}?range=200d&interval=1d`;
+      let json;
+      try {
+        json = await yahooFetch(`https://query1.finance.yahoo.com${path}`);
+      } catch (e) {
+        if (e.type === 'rate_limited') throw e;
+        json = await yahooFetch(`https://query2.finance.yahoo.com${path}`);
+      }
       const result = json.chart?.result?.[0];
       if (!result) throw new Error('No Yahoo data for ' + sym);
 

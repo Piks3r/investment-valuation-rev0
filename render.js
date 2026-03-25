@@ -47,10 +47,11 @@
     // ── Card grid renderer ────────────────────────────────────────────────
     async function renderCardsView(filter) {
       currentFilter = filter || 'ALL';
+      _tableRows = [];
       const assets = loadTrackedAssets();
-      const grid = document.getElementById('assetGrid');
-      const loadEl = document.getElementById('loadingCards');
-      const errEl  = document.getElementById('cardsError');
+      const grid      = document.getElementById('assetGrid');
+      const tableView = document.getElementById('tableView');
+      const loadEl    = document.getElementById('loadingCards');
 
       // Update filter tabs
       document.querySelectorAll('.filter-tab').forEach(btn => {
@@ -63,26 +64,40 @@
 
       if (filtered.length === 0) {
         grid.innerHTML = '<p class="text-gray-500 text-sm text-center col-span-3 py-10">No assets in this category.</p>';
-        grid.style.display = 'grid';
+        grid.style.display = currentView === 'cards' ? 'grid' : 'none';
+        tableView.classList.toggle('hidden', currentView !== 'table');
+        if (currentView === 'table') {
+          document.getElementById('tableBody').innerHTML =
+            '<tr><td colspan="7" class="text-center text-gray-500 text-sm py-10">No assets in this category.</td></tr>';
+        }
         loadEl.classList.add('hidden');
         return;
+      }
+
+      // Show/hide grid vs table
+      if (currentView === 'cards') {
+        grid.style.display = 'none';
+        tableView.classList.add('hidden');
+      } else {
+        grid.style.display = 'none';
+        tableView.classList.remove('hidden');
       }
 
       // Show loading initially if no cache at all
       const anyUncached = filtered.some(a => !getAssetCache(a.id));
       if (anyUncached) {
         loadEl.classList.remove('hidden');
-        grid.style.display = 'none';
-        errEl.classList.add('hidden');
+        if (currentView === 'cards') grid.style.display = 'none';
       }
 
       // Fetch all in parallel
       const results = await Promise.allSettled(filtered.map(a => fetchAssetData(a)));
 
       loadEl.classList.add('hidden');
-      errEl.classList.add('hidden');
-      grid.style.display = 'grid';
-      grid.innerHTML = '';
+      if (currentView === 'cards') {
+        grid.style.display = 'grid';
+        grid.innerHTML = '';
+      }
 
       _updateDataBanner(new Set(), false);
 
@@ -95,16 +110,25 @@
         const asset = filtered[i];
         if (res.status === 'rejected') {
           errorTypes.add(res.reason?.type || 'api_error');
-          const stale = getAssetCacheStale(asset.id);
-          if (stale) {
+          const staleResult = getAssetCacheStale(asset.id);
+          if (staleResult) {
+            const { data: stale, ts: staleTs } = staleResult;
             anyCached = true;
             anyData = true;
             const scores = computeScores(stale);
             const comp   = composite(scores, weights);
             const t      = tier(comp);
-            grid.insertAdjacentHTML('beforeend', renderAssetCard(asset, stale, scores, comp, t));
+            if (currentView === 'table') {
+              _tableRows.push({ asset, assetData: stale, scores, comp, t, staleTs, error: false });
+            } else {
+              grid.insertAdjacentHTML('beforeend', renderAssetCard(asset, stale, scores, comp, t, staleTs));
+            }
           } else {
-            grid.insertAdjacentHTML('beforeend', renderErrorCard(asset));
+            if (currentView === 'table') {
+              _tableRows.push({ asset, assetData: null, scores: null, comp: null, t: null, error: true });
+            } else {
+              grid.insertAdjacentHTML('beforeend', renderErrorCard(asset));
+            }
           }
           return;
         }
@@ -116,25 +140,32 @@
         checkTierChange(asset, t.label, comp, assetData.price);
         checkPriceAlerts(asset, comp, assetData.price);
         appendScoreHistory(asset.id, comp);
-        grid.insertAdjacentHTML('beforeend', renderAssetCard(asset, assetData, scores, comp, t));
+        if (currentView === 'table') {
+          _tableRows.push({ asset, assetData, scores, comp, t, error: false });
+        } else {
+          grid.insertAdjacentHTML('beforeend', renderAssetCard(asset, assetData, scores, comp, t));
+        }
       });
 
       _updateDataBanner(errorTypes, anyCached);
+      if (currentView === 'table') renderTableView();
+    }
 
-      if (!anyData && filtered.length > 0) {
-        grid.style.display = 'none';
-        errEl.classList.remove('hidden');
-      }
+    function fmtAge(ts) {
+      const m = Math.round((Date.now() - ts) / 60000);
+      if (m < 1) return '<1 min';
+      if (m < 60) return `${m} min`;
+      const h = Math.round(m / 60);
+      return `${h} hr`;
     }
 
     function _updateDataBanner(errorTypes, anyCached) {
       const banner = document.getElementById('dataBanner');
       if (!banner) return;
-      if (errorTypes.size === 0 || anyCached) { banner.classList.add('hidden'); return; }
+      if (errorTypes.size === 0) { banner.classList.add('hidden'); return; }
 
       const isRateLimited = errorTypes.has('rate_limited');
       const isNetwork     = !isRateLimited && errorTypes.has('network');
-      const upgradeBtn    = document.getElementById('dataBannerUpgrade');
       const textEl        = document.getElementById('dataBannerText');
       const iconEl        = document.getElementById('dataBannerIcon');
 
@@ -145,20 +176,17 @@
         iconEl.textContent = '⏱';
         textEl.textContent = anyCached
           ? 'CoinGecko rate limit reached (~30 req/min) — showing cached data. Usually clears within 1 minute.'
-          : 'CoinGecko rate limit reached (~30 req/min) — wait about 1 minute then refresh.';
-        upgradeBtn.classList.add('hidden');
+          : 'CoinGecko rate limit reached (~30 req/min) — wait about 1 minute then retry.';
       } else if (isNetwork) {
         iconEl.textContent = '📡';
         textEl.textContent = anyCached
           ? 'No internet connection — showing cached data.'
           : 'No internet connection.';
-        upgradeBtn.classList.add('hidden');
       } else {
         iconEl.textContent = '⚠️';
         textEl.textContent = anyCached
           ? 'Data sources temporarily unavailable — showing cached data.'
           : 'Data sources temporarily unavailable.';
-        upgradeBtn.classList.add('hidden');
       }
 
       banner.classList.remove('hidden');
@@ -172,7 +200,7 @@
       } catch { return ''; }
     }
 
-    function renderAssetCard(asset, assetData, scores, comp, t) {
+    function renderAssetCard(asset, assetData, scores, comp, t, staleTs) {
       const { price, c24h } = assetData;
       const typeBadgeColor = asset.type === 'crypto' ? 'text-blue-400' : asset.type === 'etf' ? 'text-purple-400' : 'text-green-400';
       const typeLabel = asset.type.toUpperCase();
@@ -206,6 +234,7 @@
         </div>
         <div class="mt-2.5" style="opacity:0.9">${sparkline}</div>
         ${scoreSpark ? `<div class="mt-1" style="opacity:0.75">${scoreSpark}</div><div class="text-gray-600 text-[10px] mt-0.5">score trend</div>` : ''}
+        ${staleTs ? `<div class="mt-1.5 text-[10px] text-amber-500/70 tabular-nums">Cached · ${fmtAge(staleTs)} ago</div>` : ''}
       </div>`;
     }
 
@@ -251,6 +280,7 @@
       expandedAssetId = null;
       tfCache = {};
       if (chart) { chart.destroy(); chart = null; }
+      if (scoreChart) { scoreChart.destroy(); scoreChart = null; }
       document.getElementById('expandedView').classList.add('hidden');
       document.getElementById('cardsView').classList.remove('hidden');
     }
@@ -342,6 +372,14 @@
         convEl.innerHTML = `<span style="color:${dotColor}">●</span> ${count}/${activeStd.length} ${label}`;
       } else {
         convEl.classList.add('hidden');
+      }
+
+      // Action line
+      const sig = computeDcaSignal(comp);
+      const actionEl = document.getElementById('scoreAction');
+      if (actionEl) {
+        actionEl.classList.remove('hidden');
+        actionEl.innerHTML = `<span style="color:${sig.color}">${sig.action}</span> <span class="text-gray-400 font-normal">— ${sig.context}</span>`;
       }
 
       // Score trend
@@ -552,6 +590,11 @@
         btn.classList.toggle('active', btn.dataset.tf === '1M');
       });
       renderChart(tss.slice(-30), prices.slice(-30), ma50val, ma200val, '1M', asset);
+      _syncOverlayBtns();
+
+      // Score history chart
+      currentScoreTF = '90d';
+      renderScoreHistoryChart(asset, '90d');
     }
 
     // ── Price alert helpers ───────────────────────────────────────────────
@@ -630,6 +673,7 @@
 
     // ── DCA Signal section ────────────────────────────────────────────────
     function renderDcaSection(comp) {
+      document.getElementById('dcaSection')?.classList.remove('hidden');
       const el = document.getElementById('dcaContent');
       if (!el) return;
       const sig = computeDcaSignal(comp);
@@ -654,7 +698,21 @@
     }
 
     // ── Chart ─────────────────────────────────────────────────────────────
-    function renderChart(tss, prices, ma50val, ma200val, tf = '1M') {
+    function _tsToChartPx(tss, ts, xScale) {
+      if (!tss || tss.length === 0) return null;
+      let closest = 0, minDiff = Infinity;
+      for (let i = 0; i < tss.length; i++) {
+        const d = Math.abs(tss[i] - ts);
+        if (d < minDiff) { minDiff = d; closest = i; }
+      }
+      if (minDiff > 7 * 864e5) return null;
+      return xScale.getPixelForValue(closest);
+    }
+
+    function renderChart(tss, prices, ma50val, ma200val, tf = '1M', asset = null) {
+      // Cache chart state for overlay toggles
+      _chartTss = tss; _chartPrices = prices; _chartMa50 = ma50val; _chartMa200 = ma200val; _chartAsset = asset;
+
       const maxTicks = { '1D': 8, '1W': 7, '1M': 7, '6M': 7, '1Y': 8, 'MAX': 8 }[tf] ?? 7;
       const labels = tss.map(ts => {
         const d = new Date(ts);
@@ -676,16 +734,72 @@
         pointRadius: 0,
         borderWidth: 2,
       }];
-      if (ma50val != null) datasets.push({
+      if (ma50val != null && chartOverlays.ma50) datasets.push({
         label: '50d MA', data: prices.map(() => ma50val),
         borderColor: '#fbbf24', borderWidth: 1.5, borderDash: [6, 4],
         pointRadius: 0, fill: false, tension: 0,
       });
-      if (ma200val != null) datasets.push({
+      if (ma200val != null && chartOverlays.ma200) datasets.push({
         label: '200d MA', data: prices.map(() => ma200val),
         borderColor: '#fb923c', borderWidth: 1.5, borderDash: [6, 4],
         pointRadius: 0, fill: false, tension: 0,
       });
+
+      // Bollinger band envelope
+      if (chartOverlays.bb) {
+        const boll = rollingBollinger(prices);
+        if (boll.some(b => b !== null)) {
+          datasets.push({
+            label: 'BB Upper',
+            data: boll.map(b => b?.upper ?? null),
+            borderColor: 'rgba(148,163,184,0.3)',
+            backgroundColor: 'rgba(148,163,184,0.07)',
+            borderWidth: 1,
+            fill: { target: '+1' },
+            pointRadius: 0,
+            tension: 0.2,
+            spanGaps: false,
+          });
+          datasets.push({
+            label: 'BB Lower',
+            data: boll.map(b => b?.lower ?? null),
+            borderColor: 'rgba(148,163,184,0.3)',
+            borderWidth: 1,
+            fill: false,
+            pointRadius: 0,
+            tension: 0.2,
+            spanGaps: false,
+          });
+        }
+      }
+
+      // Score zone background plugin — horizontal price bands anchored to 200d MA thresholds
+      const scoreZoneBgPlugin = {
+        id: 'scoreZoneBg',
+        beforeDraw(ch) {
+          if (!chartOverlays.zones || !ma200val) return;
+          const { ctx: c, chartArea, scales: { y } } = ch;
+          if (!chartArea) return;
+          const bands = [
+            { lo: 0,              hi: ma200val * 0.7,  color: 'rgba(16,185,129,0.18)'  },
+            { lo: ma200val * 0.7, hi: ma200val * 1.0,  color: 'rgba(132,204,22,0.15)'  },
+            { lo: ma200val * 1.0, hi: ma200val * 1.2,  color: 'rgba(234,179,8,0.14)'   },
+            { lo: ma200val * 1.2, hi: ma200val * 2.5,  color: 'rgba(249,115,22,0.15)'  },
+            { lo: ma200val * 2.5, hi: Infinity,         color: 'rgba(239,68,68,0.18)'   },
+          ];
+          const visLo = y.getValueForPixel(chartArea.bottom);
+          const visHi = y.getValueForPixel(chartArea.top);
+          for (const band of bands) {
+            const lo = Math.max(band.lo, visLo);
+            const hi = Math.min(band.hi === Infinity ? visHi : band.hi, visHi);
+            if (lo >= hi) continue;
+            const py1 = y.getPixelForValue(hi);
+            const py2 = y.getPixelForValue(lo);
+            c.fillStyle = band.color;
+            c.fillRect(chartArea.left, py1, chartArea.right - chartArea.left, py2 - py1);
+          }
+        }
+      };
 
       chart = new Chart(ctx, {
         type: 'line',
@@ -697,6 +811,7 @@
           plugins: {
             legend: { display: false },
             tooltip: {
+              filter: item => !item.dataset.label.startsWith('BB'),
               backgroundColor: '#111827',
               titleColor: '#9ca3af',
               bodyColor: '#f9fafb',
@@ -717,6 +832,22 @@
             },
           },
         },
+        plugins: [scoreZoneBgPlugin],
+      });
+    }
+
+    function toggleOverlay(key) {
+      if (!(key in chartOverlays)) return;
+      chartOverlays[key] = !chartOverlays[key];
+      const btn = document.querySelector(`[data-overlay="${key}"]`);
+      if (btn) btn.classList.toggle('opacity-30', !chartOverlays[key]);
+      if (_chartTss) renderChart(_chartTss, _chartPrices, _chartMa50, _chartMa200, currentTF, _chartAsset);
+    }
+
+    function _syncOverlayBtns() {
+      Object.keys(chartOverlays).forEach(key => {
+        const btn = document.querySelector(`[data-overlay="${key}"]`);
+        if (btn) btn.classList.toggle('opacity-30', !chartOverlays[key]);
       });
     }
 
@@ -769,10 +900,264 @@
           prices = tfCache[cacheKey].prices;
         }
         const c = getAssetCache(expandedAssetId);
-        renderChart(tss, prices, c?.ma50val ?? null, c?.ma200val ?? null, tf);
+        const assetForChart = loadTrackedAssets().find(a => a.id === expandedAssetId) ?? null;
+        renderChart(tss, prices, c?.ma50val ?? null, c?.ma200val ?? null, tf, assetForChart);
       } catch (err) {
         console.error('TF switch error:', err);
       } finally {
         spinner.classList.add('hidden');
+      }
+    }
+
+    // ── Table column helpers ──────────────────────────────────────────────
+    function getTableCols() {
+      try {
+        const s = JSON.parse(localStorage.getItem(TABLE_COLS_KEY));
+        if (Array.isArray(s) && s.length) return s;
+      } catch {}
+      return TABLE_COLS_DEFAULT.map(c => ({ ...c }));
+    }
+    function saveTableCols(cols) { localStorage.setItem(TABLE_COLS_KEY, JSON.stringify(cols)); }
+
+    function _tableColCell(key, r) {
+      const { assetData, comp, t } = r;
+      const gray = '<span class="text-gray-600">—</span>';
+      switch (key) {
+        case 'score': return `<td class="text-right px-3 font-bold tabular-nums" style="color:${t.color}">${comp.toFixed(1)}</td>`;
+        case 'zone':  return `<td class="px-3 text-xs font-semibold" style="color:${t.color}">${t.label}</td>`;
+        case 'rsi':   return `<td class="text-right px-3 tabular-nums text-gray-300">${assetData.rsiVal != null ? assetData.rsiVal.toFixed(0) : gray}</td>`;
+        case 'vs200': { const v = assetData.price && assetData.ma200val ? (assetData.price / assetData.ma200val - 1) * 100 : null;
+                        return `<td class="text-right px-3 tabular-nums">${v != null ? colorPct(v) : gray}</td>`; }
+        case 'chg30': return `<td class="text-right px-3 tabular-nums">${assetData.c30 != null ? colorPct(assetData.c30) : gray}</td>`;
+        case 'price': return `<td class="text-right pl-3 tabular-nums text-gray-300">${fmtPrice(assetData.price)}</td>`;
+        case 'dca':   { const sig = computeDcaSignal(comp);
+                        return `<td class="text-right px-3 tabular-nums text-xs font-semibold"><span style="color:${sig.color}">${sig.action} ${sig.multiplier}×</span></td>`; }
+      }
+      return '<td></td>';
+    }
+
+    function _tableColHeader(col) {
+      const ind = `<span class="sort-ind" data-col="${col.sortKey ?? col.key}"></span>`;
+      if (col.sortKey) return `<th class="text-right py-2.5 px-3 font-medium cursor-pointer hover:text-gray-300" onclick="sortTable('${col.sortKey}')">${col.label} ${ind}</th>`;
+      if (col.key === 'zone') return `<th class="text-left py-2.5 px-3 font-medium">${col.label}</th>`;
+      return `<th class="text-right py-2.5 px-3 font-medium">${col.label}</th>`;
+    }
+
+    // ── Table view ────────────────────────────────────────────────────────
+    function renderTableView() {
+      const head = document.getElementById('tableHead');
+      const body = document.getElementById('tableBody');
+      if (!body) return;
+
+      const cols = getTableCols().filter(c => c.visible);
+
+      // Build header
+      if (head) {
+        head.innerHTML = `<tr class="text-gray-500 text-[11px] uppercase tracking-wider border-b border-gray-800 select-none">
+          <th class="text-left py-2.5 pr-4 font-medium cursor-pointer hover:text-gray-300" onclick="sortTable('name')">Asset <span class="sort-ind" data-col="name"></span></th>
+          ${cols.map(_tableColHeader).join('')}
+          <th class="py-2.5 pl-3 w-8"></th>
+        </tr>`;
+      }
+
+      const rows = [..._tableRows].sort((a, b) => {
+        if (a.error && !b.error) return 1;
+        if (!a.error && b.error) return -1;
+        const col = tableSort.col;
+        let av, bv;
+        if (col === 'name')  { av = a.asset.name.toLowerCase(); bv = b.asset.name.toLowerCase(); }
+        if (col === 'score') { av = a.comp ?? -1; bv = b.comp ?? -1; }
+        if (col === 'rsi')   { av = a.assetData?.rsiVal ?? -1; bv = b.assetData?.rsiVal ?? -1; }
+        if (col === 'vs200') {
+          av = a.assetData?.price && a.assetData?.ma200val ? (a.assetData.price / a.assetData.ma200val - 1) * 100 : -Infinity;
+          bv = b.assetData?.price && b.assetData?.ma200val ? (b.assetData.price / b.assetData.ma200val - 1) * 100 : -Infinity;
+        }
+        if (col === 'chg30') { av = a.assetData?.c30 ?? -Infinity; bv = b.assetData?.c30 ?? -Infinity; }
+        if (av < bv) return tableSort.asc ? -1 : 1;
+        if (av > bv) return tableSort.asc ? 1 : -1;
+        return 0;
+      });
+
+      document.querySelectorAll('.sort-ind').forEach(el => {
+        el.textContent = el.dataset.col === tableSort.col ? (tableSort.asc ? '↑' : '↓') : '';
+      });
+
+      const trashIcon = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>`;
+
+      body.innerHTML = rows.map(r => {
+        if (r.error) {
+          return `<tr class="border-b border-gray-800/50">
+            <td class="py-3 pr-4">
+              <div class="flex items-center gap-2.5">
+                ${assetAvatar(r.asset, { bg: '#1f2937', border: '#374151', color: '#6b7280' })}
+                <div><div class="font-medium text-gray-500">${r.asset.name}</div><div class="text-[11px] text-gray-600">${r.asset.symbol}</div></div>
+              </div>
+            </td>
+            <td colspan="${cols.length}" class="text-xs text-gray-600 px-3">Unable to load</td>
+            <td class="pl-3"><button onclick="event.stopPropagation();removeAsset('${r.asset.id}')" class="text-gray-600 hover:text-red-400 transition-colors" title="Remove">${trashIcon}</button></td>
+          </tr>`;
+        }
+        const { asset } = r;
+        return `<tr class="border-b border-gray-800/50 hover:bg-gray-800/30 cursor-pointer transition-colors" onclick="expandAsset('${asset.id}')">
+          <td class="py-3 pr-4">
+            <div class="flex items-center gap-2.5">
+              ${assetAvatar(asset, r.t)}
+              <div><div class="font-medium text-white">${asset.name}</div><div class="text-[11px] text-gray-500">${asset.symbol}</div></div>
+            </div>
+          </td>
+          ${cols.map(c => _tableColCell(c.key, r)).join('')}
+          <td class="pl-3"><button onclick="event.stopPropagation();removeAsset('${asset.id}')" class="text-gray-600 hover:text-red-400 transition-colors" title="Remove">${trashIcon}</button></td>
+        </tr>`;
+      }).join('');
+    }
+
+    function switchView(view) {
+      currentView = view;
+      document.querySelectorAll('.view-btn').forEach(btn =>
+        btn.classList.toggle('active', btn.dataset.view === view)
+      );
+      document.getElementById('colPickerBtn')?.classList.toggle('hidden', view !== 'table');
+      if (view !== 'table') closeColPicker();
+      renderCardsView(currentFilter);
+    }
+
+    // ── Column picker ─────────────────────────────────────────────────────
+    function openColPicker() {
+      const panel = document.getElementById('colPicker');
+      if (!panel) return;
+      _renderColPickerList();
+      panel.classList.toggle('hidden');
+    }
+    function closeColPicker() {
+      document.getElementById('colPicker')?.classList.add('hidden');
+    }
+    function _renderColPickerList() {
+      const cols = getTableCols();
+      document.getElementById('colPickerList').innerHTML = cols.map((col, i) => `
+        <div class="flex items-center gap-2 py-1 px-1 rounded" style="transition:background 0.1s" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background=''">
+          <div class="flex flex-col gap-px">
+            <button onclick="moveTableCol('${col.key}',-1)" ${i === 0 ? 'disabled' : ''} class="text-gray-500 hover:text-white text-[10px] leading-none disabled:opacity-20">▲</button>
+            <button onclick="moveTableCol('${col.key}',1)"  ${i === cols.length - 1 ? 'disabled' : ''} class="text-gray-500 hover:text-white text-[10px] leading-none disabled:opacity-20">▼</button>
+          </div>
+          <label class="flex items-center gap-2 flex-1 cursor-pointer select-none">
+            <input type="checkbox" ${col.visible ? 'checked' : ''} onchange="toggleTableCol('${col.key}')"
+              class="w-3.5 h-3.5 accent-orange-500 cursor-pointer">
+            <span class="text-sm text-gray-300">${col.label}</span>
+          </label>
+        </div>`).join('');
+    }
+    function toggleTableCol(key) {
+      const cols = getTableCols();
+      const col = cols.find(c => c.key === key);
+      if (col) col.visible = !col.visible;
+      saveTableCols(cols);
+      _renderColPickerList();
+      renderTableView();
+    }
+    function moveTableCol(key, dir) {
+      const cols = getTableCols();
+      const idx = cols.findIndex(c => c.key === key);
+      const swap = idx + dir;
+      if (swap < 0 || swap >= cols.length) return;
+      [cols[idx], cols[swap]] = [cols[swap], cols[idx]];
+      saveTableCols(cols);
+      _renderColPickerList();
+      renderTableView();
+    }
+
+    function sortTable(col) {
+      if (tableSort.col === col) {
+        tableSort.asc = !tableSort.asc;
+      } else {
+        tableSort = { col, asc: col === 'name' };
+      }
+      renderTableView();
+    }
+
+    // ── Score history chart ───────────────────────────────────────────────
+    function renderScoreHistoryChart(asset, tf) {
+      const section = document.getElementById('scoreHistorySection');
+      const raw = JSON.parse(localStorage.getItem('score_history_' + asset.id) || '[]');
+      const cutoff = tf === 'all' ? 0 : Date.now() - (tf === '30d' ? 30 : 90) * 864e5;
+      const hist = raw.filter(h => h.ts >= cutoff);
+      if (hist.length < 3) { section.classList.add('hidden'); return; }
+      section.classList.remove('hidden');
+
+      document.querySelectorAll('.score-tf-btn').forEach(btn =>
+        btn.classList.toggle('text-white', btn.dataset.stf === tf)
+      );
+
+      const labels = hist.map(h => {
+        const d = new Date(h.ts);
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      });
+      const scores = hist.map(h => h.score);
+
+      if (scoreChart) { scoreChart.destroy(); scoreChart = null; }
+
+      const zonesPlugin = {
+        id: 'scoreZones',
+        beforeDraw(chart) {
+          const { ctx, chartArea, scales: { y } } = chart;
+          if (!chartArea) return;
+          [{ from: 0, to: 3, color: 'rgba(16,185,129,0.07)' },
+           { from: 3, to: 6, color: 'rgba(234,179,8,0.07)' },
+           { from: 6, to: 10, color: 'rgba(239,68,68,0.07)' }]
+          .forEach(z => {
+            ctx.fillStyle = z.color;
+            ctx.fillRect(chartArea.left, y.getPixelForValue(z.to),
+                         chartArea.width, y.getPixelForValue(z.from) - y.getPixelForValue(z.to));
+          });
+        }
+      };
+
+      const ctx = document.getElementById('scoreChart').getContext('2d');
+      scoreChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            data: scores,
+            borderColor: '#fb923c',
+            backgroundColor: 'rgba(251,146,60,0.08)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: hist.length > 20 ? 0 : 3,
+            borderWidth: 2,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#111827',
+              titleColor: '#9ca3af',
+              bodyColor: '#f9fafb',
+              borderColor: '#374151',
+              borderWidth: 1,
+              callbacks: { label: ctx => ` Score: ${ctx.raw.toFixed(1)}` },
+            },
+          },
+          scales: {
+            x: { grid: { color: '#1f2937' }, ticks: { color: '#6b7280', maxTicksLimit: 6, font: { size: 11 } } },
+            y: {
+              min: 0, max: 10,
+              grid: { color: '#1f2937' },
+              ticks: { color: '#6b7280', font: { size: 11 }, stepSize: 2 },
+            },
+          },
+        },
+        plugins: [zonesPlugin],
+      });
+    }
+
+    function switchScoreTF(tf) {
+      currentScoreTF = tf;
+      if (expandedAssetId) {
+        const asset = loadTrackedAssets().find(a => a.id === expandedAssetId);
+        if (asset) renderScoreHistoryChart(asset, tf);
       }
     }

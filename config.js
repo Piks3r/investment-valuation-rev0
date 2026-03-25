@@ -6,6 +6,16 @@
     const ASSETS_KEY           = 'tracked_assets_v1';
     const SETTINGS_KEY         = 'valuation_settings_v1';
     const CUSTOM_PRESETS_KEY   = 'custom_weight_presets_v1';
+    const TABLE_COLS_KEY       = 'table_cols_v1';
+    const TABLE_COLS_DEFAULT   = [
+      { key: 'score', label: 'Score',   sortKey: 'score', visible: true  },
+      { key: 'zone',  label: 'Zone',    sortKey: null,    visible: true  },
+      { key: 'rsi',   label: 'RSI',     sortKey: 'rsi',   visible: true  },
+      { key: 'vs200', label: 'vs 200d', sortKey: 'vs200', visible: true  },
+      { key: 'chg30', label: '30d %',   sortKey: 'chg30', visible: true  },
+      { key: 'price', label: 'Price',   sortKey: null,    visible: true  },
+      { key: 'dca',   label: 'DCA',     sortKey: null,    visible: false },
+    ];
     const WEIGHT_PRESETS  = {
       standard:  { fng: 25, rsi: 25, vs200: 20, vs50: 15, chg30: 10, dom: 5 },
       technical: { fng:  0, rsi: 30, vs200: 35, vs50: 25, chg30: 10, dom: 0 },
@@ -31,9 +41,16 @@
     };
 
     let chart         = null;
+    let scoreChart    = null;
     let currentTF     = '1M';
+    let currentScoreTF = '90d';
+    let chartOverlays = { ma50: true, ma200: true, bb: true, zones: true };
+    let _chartTss = null, _chartPrices = null, _chartMa50 = null, _chartMa200 = null, _chartAsset = null;
     let tfCache       = {};
     let currentFilter = 'ALL';
+    let currentView   = 'cards';
+    let tableSort     = { col: 'score', asc: true };
+    let _tableRows    = [];
     let expandedAssetId = null;
     let searchTimer   = null;
     let _searchResults = [];

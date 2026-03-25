@@ -429,13 +429,20 @@
         document.getElementById('deletePresetBtn').classList.add('hidden');
       }
       renderAllPresetButtons();
+      const hasCrypto = loadTrackedAssets().some(a => a.type === 'crypto');
+      ['wFngRow', 'wDomRow'].forEach(id => {
+        const row = document.getElementById(id);
+        if (row) row.classList.toggle('opacity-40', !hasCrypto);
+      });
+      const cryptoNote = document.getElementById('cryptoOnlyNote');
+      if (cryptoNote) cryptoNote.classList.toggle('hidden', hasCrypto);
       document.getElementById('settingsModal').classList.remove('hidden');
-      updateNotifUI();
     }
     function closeSettings() { document.getElementById('settingsModal').classList.add('hidden'); }
 
     function openAlertsModal() {
       renderAlertsModal();
+      updateNotifUI();
       document.getElementById('alertsModal').classList.remove('hidden');
     }
     function closeAlertsModal() { document.getElementById('alertsModal').classList.add('hidden'); }
@@ -609,6 +616,16 @@
         closeAddModal();
         closeSettings();
         closeAlertsModal();
+        closeColPicker();
+      }
+    });
+
+    document.addEventListener('click', e => {
+      const picker = document.getElementById('colPicker');
+      const btn    = document.getElementById('colPickerBtn');
+      if (picker && !picker.classList.contains('hidden') &&
+          !picker.contains(e.target) && e.target !== btn && !btn?.contains(e.target)) {
+        closeColPicker();
       }
     });
 
