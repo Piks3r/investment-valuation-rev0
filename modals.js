@@ -421,7 +421,7 @@
       if (name) deleteCustomPreset(name);
     }
 
-    function openSettings() {
+    function openSettingsModal() {
       // Detect which preset (if any) matches current saved settings
       const current = loadSettings();
       const all = { ...WEIGHT_PRESETS, ...loadCustomPresets() };
@@ -450,16 +450,15 @@
       });
       const cryptoNote = document.getElementById('cryptoOnlyNote');
       if (cryptoNote) cryptoNote.classList.toggle('hidden', hasCrypto);
-      document.getElementById('settingsModal').classList.remove('hidden');
-    }
-    function closeSettings() { document.getElementById('settingsModal').classList.add('hidden'); }
-
-    function openAlertsModal() {
       renderAlertsModal();
       updateNotifUI();
-      document.getElementById('alertsModal').classList.remove('hidden');
+      document.getElementById('settingsModal').classList.remove('hidden');
     }
-    function closeAlertsModal() { document.getElementById('alertsModal').classList.add('hidden'); }
+    function openSettings() { openSettingsModal(); }
+    function openAlertsModal() { openSettingsModal(); }
+    function closeSettingsModal() { document.getElementById('settingsModal').classList.add('hidden'); }
+    function closeSettings() { closeSettingsModal(); }
+    function closeAlertsModal() { closeSettingsModal(); }
     function renderAlertsModal() {
       const assets = loadTrackedAssets();
       const all = loadAlerts();

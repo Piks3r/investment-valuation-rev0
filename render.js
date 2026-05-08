@@ -218,13 +218,6 @@
       banner.classList.remove('hidden');
     }
 
-    function scoreSparklineSVG(id, color) {
-      try {
-        const hist = JSON.parse(localStorage.getItem('score_history_' + id) || '[]');
-        if (hist.length < 3) return '';
-        return sparklineSVG(hist.slice(-30).map(h => h.score), color);
-      } catch { return ''; }
-    }
 
     function renderAssetCard(asset, assetData, scores, comp, t, staleTs) {
       const { price, c24h } = assetData;
@@ -234,9 +227,6 @@
       const zoneLabel = getZoneLabel(comp);
       const changeClass = getChangeClass(c24h);
       const changeStr = formatChange(c24h);
-
-      const sparkline = sparklineSVG(assetData.prices || [], t.color);
-      const scoreSpark = scoreSparklineSVG(asset.id, t.color);
 
       return `
       <div class="asset-card" onclick="expandAsset('${asset.id}')">
@@ -262,8 +252,16 @@
           <span class="font-semibold tabular-nums" style="color:var(--text-primary)">${fmtPrice(price)}</span>
           <span class="${changeClass}">${changeStr} <span style="color:var(--text-muted);font-size:11px">(24h)</span></span>
         </div>
-        <div class="mt-2.5" style="opacity:0.9">${sparkline}</div>
-        ${scoreSpark ? `<div class="mt-1" style="opacity:0.75">${scoreSpark}</div><div style="color:var(--text-muted);font-size:10px;margin-top:4px">score trend</div>` : ''}
+        <div class="mt-3">
+          <div class="h-1.5 score-gradient rounded-full relative">
+            <div class="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full shadow-sm"
+                 style="background:var(--gauge-needle);outline:2px solid var(--bg-card);left:${Math.min(Math.max((comp/10)*100,2),98)}%"></div>
+          </div>
+          <div class="flex justify-between mt-1">
+            <span style="color:var(--text-muted);font-size:10px">Cheap</span>
+            <span style="color:var(--text-muted);font-size:10px">Expensive</span>
+          </div>
+        </div>
         ${staleTs ? `<div class="mt-1.5 text-[10px]" style="color:var(--text-muted);font-family:monospace">Cached · ${fmtAge(staleTs)} ago</div>` : ''}
       </div>`;
     }
@@ -623,8 +621,8 @@
       _syncOverlayBtns();
 
       // Score history chart
-      currentScoreTF = '90d';
-      renderScoreHistoryChart(asset, '90d');
+      currentScoreTF = '30d';
+      renderScoreHistoryChart(asset, '30d');
     }
 
     // ── Price alert helpers ───────────────────────────────────────────────
@@ -720,7 +718,7 @@
           </div>
         </div>
         <div class="h-3 score-gradient rounded-full relative mb-1.5">
-          <div class="meter-dot absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white shadow-lg ring-2 ring-gray-950" style="left:${dotPct}%"></div>
+          <div class="meter-dot absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full shadow-lg" style="background:var(--gauge-needle);outline:2px solid var(--bg-app);left:${dotPct}%"></div>
         </div>
         <div class="flex justify-between text-xs text-gray-600 px-0.5">
           <span>Double Down</span><span>Buy More</span><span>Normal</span><span>Reduce</span><span>Pause</span>
@@ -739,9 +737,20 @@
       return xScale.getPixelForValue(closest);
     }
 
+    function rollingMA(prices, period) {
+      return prices.map((_, i) => {
+        const slice = prices.slice(Math.max(0, i - period + 1), i + 1);
+        return slice.reduce((a, b) => a + b, 0) / slice.length;
+      });
+    }
+
     function renderChart(tss, prices, ma50val, ma200val, tf = '1M', asset = null) {
       // Cache chart state for overlay toggles
       _chartTss = tss; _chartPrices = prices; _chartMa50 = ma50val; _chartMa200 = ma200val; _chartAsset = asset;
+
+      const style = getComputedStyle(document.body);
+      const gridColor = style.getPropertyValue('--border').trim() || '#374151';
+      const tickColor = style.getPropertyValue('--text-muted').trim() || '#6b7280';
 
       const maxTicks = { '1D': 8, '1W': 7, '1M': 7, '6M': 7, '1Y': 8, 'MAX': 8 }[tf] ?? 7;
       const labels = tss.map(ts => {
@@ -765,13 +774,13 @@
         borderWidth: 2,
       }];
       if (ma50val != null && chartOverlays.ma50) datasets.push({
-        label: '50d MA', data: prices.map(() => ma50val),
-        borderColor: '#fbbf24', borderWidth: 1.5, borderDash: [6, 4],
+        label: '50d MA', data: rollingMA(prices, 50),
+        borderColor: '#d97706', borderWidth: 1.5, borderDash: [6, 4],
         pointRadius: 0, fill: false, tension: 0,
       });
       if (ma200val != null && chartOverlays.ma200) datasets.push({
-        label: '200d MA', data: prices.map(() => ma200val),
-        borderColor: '#fb923c', borderWidth: 1.5, borderDash: [6, 4],
+        label: '200d MA', data: rollingMA(prices, 200),
+        borderColor: '#ea580c', borderWidth: 1.5, borderDash: [6, 4],
         pointRadius: 0, fill: false, tension: 0,
       });
 
@@ -782,8 +791,8 @@
           datasets.push({
             label: 'BB Upper',
             data: boll.map(b => b?.upper ?? null),
-            borderColor: 'rgba(148,163,184,0.3)',
-            backgroundColor: 'rgba(148,163,184,0.07)',
+            borderColor: 'rgba(100,116,139,0.55)',
+            backgroundColor: 'rgba(100,116,139,0.12)',
             borderWidth: 1,
             fill: { target: '+1' },
             pointRadius: 0,
@@ -793,7 +802,7 @@
           datasets.push({
             label: 'BB Lower',
             data: boll.map(b => b?.lower ?? null),
-            borderColor: 'rgba(148,163,184,0.3)',
+            borderColor: 'rgba(100,116,139,0.55)',
             borderWidth: 1,
             fill: false,
             pointRadius: 0,
@@ -811,11 +820,11 @@
           const { ctx: c, chartArea, scales: { y } } = ch;
           if (!chartArea) return;
           const bands = [
-            { lo: 0,              hi: ma200val * 0.7,  color: 'rgba(16,185,129,0.18)'  },
-            { lo: ma200val * 0.7, hi: ma200val * 1.0,  color: 'rgba(132,204,22,0.15)'  },
-            { lo: ma200val * 1.0, hi: ma200val * 1.2,  color: 'rgba(234,179,8,0.14)'   },
-            { lo: ma200val * 1.2, hi: ma200val * 2.5,  color: 'rgba(249,115,22,0.15)'  },
-            { lo: ma200val * 2.5, hi: Infinity,         color: 'rgba(239,68,68,0.18)'   },
+            { lo: 0,              hi: ma200val * 0.7,  color: 'rgba(16,185,129,0.30)'  },
+            { lo: ma200val * 0.7, hi: ma200val * 1.0,  color: 'rgba(132,204,22,0.25)'  },
+            { lo: ma200val * 1.0, hi: ma200val * 1.2,  color: 'rgba(234,179,8,0.22)'   },
+            { lo: ma200val * 1.2, hi: ma200val * 2.5,  color: 'rgba(249,115,22,0.26)'  },
+            { lo: ma200val * 2.5, hi: Infinity,         color: 'rgba(239,68,68,0.30)'   },
           ];
           const visLo = y.getValueForPixel(chartArea.bottom);
           const visHi = y.getValueForPixel(chartArea.top);
@@ -851,10 +860,10 @@
             },
           },
           scales: {
-            x: { grid: { color: '#1f2937' }, ticks: { color: '#6b7280', maxTicksLimit: maxTicks, font: { size: 11 } } },
+            x: { grid: { color: gridColor }, ticks: { color: tickColor, maxTicksLimit: maxTicks, font: { size: 11 } } },
             y: {
-              grid: { color: '#1f2937' },
-              ticks: { color: '#6b7280', font: { size: 11 }, callback: v => {
+              grid: { color: gridColor },
+              ticks: { color: tickColor, font: { size: 11 }, callback: v => {
                 if (v >= 1000) return '$' + (v/1000).toFixed(0) + 'k';
                 if (v >= 1) return '$' + v.toFixed(0);
                 return '$' + v.toFixed(2);
@@ -932,6 +941,10 @@
         const c = getAssetCache(expandedAssetId);
         const assetForChart = loadTrackedAssets().find(a => a.id === expandedAssetId) ?? null;
         renderChart(tss, prices, c?.ma50val ?? null, c?.ma200val ?? null, tf, assetForChart);
+
+        const tfToScore = { '1D':'1d', '1W':'7d', '1M':'30d', '6M':'180d', '1Y':'365d', 'MAX':'all' };
+        const sTF = tfToScore[tf];
+        if (sTF) { currentScoreTF = sTF; renderScoreHistoryChart(assetForChart, sTF); }
       } catch (err) {
         console.error('TF switch error:', err);
       } finally {
@@ -1108,15 +1121,15 @@
     function renderScoreHistoryChart(asset, tf) {
       const section = document.getElementById('scoreHistorySection');
       const raw = JSON.parse(localStorage.getItem('score_history_' + asset.id) || '[]');
-      const cutoff = tf === 'all' ? 0 : Date.now() - (tf === '30d' ? 30 : 90) * 864e5;
+      const tfDays = { '1d':1, '7d':7, '30d':30, '90d':90, '180d':180, '365d':365 };
+      const cutoff = tfDays[tf] != null ? Date.now() - tfDays[tf] * 864e5 : 0;
       const hist = raw.filter(h => h.ts >= cutoff);
       if (hist.length < 3) { section.classList.add('hidden'); return; }
       section.classList.remove('hidden');
 
-      document.querySelectorAll('.score-tf-btn').forEach(btn => {
-        const isActive = btn.dataset.stf === tf;
-        btn.style.color = isActive ? 'var(--text-primary)' : 'var(--text-muted)';
-      });
+      const style = getComputedStyle(document.body);
+      const gridColor = style.getPropertyValue('--border').trim() || '#374151';
+      const tickColor = style.getPropertyValue('--text-muted').trim() || '#6b7280';
 
       const labels = hist.map(h => {
         const d = new Date(h.ts);
@@ -1131,13 +1144,24 @@
         beforeDraw(chart) {
           const { ctx, chartArea, scales: { y } } = chart;
           if (!chartArea) return;
-          [{ from: 0, to: 3, color: 'rgba(16,185,129,0.07)' },
-           { from: 3, to: 6, color: 'rgba(234,179,8,0.07)' },
-           { from: 6, to: 10, color: 'rgba(239,68,68,0.07)' }]
-          .forEach(z => {
+          const zones = [
+            { from: 0, to: 3, color: 'rgba(16,185,129,0.22)', label: 'Cheap' },
+            { from: 3, to: 6, color: 'rgba(234,179,8,0.20)', label: 'Fair' },
+            { from: 6, to: 10, color: 'rgba(239,68,68,0.22)', label: 'Expensive' },
+          ];
+          zones.forEach(z => {
+            const top = y.getPixelForValue(z.to);
+            const bottom = y.getPixelForValue(z.from);
             ctx.fillStyle = z.color;
-            ctx.fillRect(chartArea.left, y.getPixelForValue(z.to),
-                         chartArea.width, y.getPixelForValue(z.from) - y.getPixelForValue(z.to));
+            ctx.fillRect(chartArea.left, top, chartArea.width, bottom - top);
+            // Zone label — right-aligned, inside the band
+            ctx.save();
+            ctx.font = '10px system-ui, sans-serif';
+            ctx.fillStyle = 'rgba(100,100,100,0.65)';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(z.label, chartArea.right - 4, (top + bottom) / 2);
+            ctx.restore();
           });
         }
       };
@@ -1173,22 +1197,14 @@
             },
           },
           scales: {
-            x: { grid: { color: '#1f2937' }, ticks: { color: '#6b7280', maxTicksLimit: 6, font: { size: 11 } } },
+            x: { grid: { color: gridColor }, ticks: { color: tickColor, maxTicksLimit: 6, font: { size: 11 } } },
             y: {
               min: 0, max: 10,
-              grid: { color: '#1f2937' },
-              ticks: { color: '#6b7280', font: { size: 11 }, stepSize: 2 },
+              grid: { color: gridColor },
+              ticks: { color: tickColor, font: { size: 11 }, stepSize: 2 },
             },
           },
         },
         plugins: [zonesPlugin],
       });
-    }
-
-    function switchScoreTF(tf) {
-      currentScoreTF = tf;
-      if (expandedAssetId) {
-        const asset = loadTrackedAssets().find(a => a.id === expandedAssetId);
-        if (asset) renderScoreHistoryChart(asset, tf);
-      }
     }

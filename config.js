@@ -59,10 +59,10 @@
 
     // ── Timeframe config ─────────────────────────────────────────────────
     const TF_CONFIG = {
-      '1M':  { useExisting: true, slice: 30 },
-      '6M':  { useExisting: true, slice: 180 },
       '1D':  { days: '1' },
       '1W':  { days: '7' },
+      '1M':  { useExisting: true, slice: 30 },
+      '6M':  { days: '180', interval: 'daily' },
       '1Y':  { days: '365', interval: 'daily' },
       'MAX': { days: 'max', interval: 'weekly' },
     };
