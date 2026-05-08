@@ -3,11 +3,14 @@
   --bg-app:        #FAFAF9;
   --bg-card:       #FFFFFF;
   --bg-subtle:     #F5F5F5;
+  --bg-panel:      #F0F0F0;
+  --bg-elevated:   #E8E8E8;
 
   /* Text */
   --text-primary:   #1A1A1A;
   --text-secondary: #666666;
   --text-muted:     #999999;
+  --text-on-dark:   #1A1A1A;
 
   /* Borders */
   --border:         #E5E5E5;
@@ -16,6 +19,14 @@
   /* Buttons */
   --btn-bg:         #1A1A1A;
   --btn-text:       #FFFFFF;
+
+  /* Inputs */
+  --input-bg:       #FFFFFF;
+  --input-border:   #E5E5E5;
+
+  /* Gauge and Chart */
+  --gauge-needle:   #1A1A1A;
+  --chart-bg:       transparent;
 
   /* Valuation Zone Colors — applied to score badge */
   --zone-very-cheap:       #10B981;   /* Score 0–2 */
@@ -27,6 +38,9 @@
   /* Price Change Colors */
   --change-up:    #10B981;   /* Positive % change */
   --change-down:  #EF4444;   /* Negative % change */
+
+  /* Title gradient */
+  --title-start:  #1A1A1A;
 
   /* Border Radius */
   --radius-sm:  4px;    /* Badges, tags */
@@ -40,6 +54,33 @@
   --space-md:  16px;
   --space-lg:  24px;
   --space-xl:  32px;
+}
+
+/* Dark mode theme */
+body.dark {
+  --bg-app:        #0A0F1E;
+  --bg-card:       #111827;
+  --bg-subtle:     #1F2937;
+  --bg-panel:      #1F2937;
+  --bg-elevated:   #374151;
+
+  --text-primary:  #F9FAFB;
+  --text-secondary:#D1D5DB;
+  --text-muted:    #9CA3AF;
+  --text-on-dark:  #F9FAFB;
+
+  --border:        rgba(255,255,255,0.08);
+
+  --btn-bg:        #374151;
+  --btn-text:      #F9FAFB;
+
+  --input-bg:      #1F2937;
+  --input-border:  rgba(255,255,255,0.1);
+
+  --gauge-needle:  #FFFFFF;
+  --chart-bg:      #111827;
+
+  --title-start:   #f1f5f9;
 }
 
 /* ── Global Styles ─────────────────────────────────────────────────────── */
@@ -462,6 +503,39 @@ input[type=range]::-moz-range-thumb {
   transition: background 0.12s;
 }
 .search-result:hover { background: var(--bg-subtle); }
+
+/* ── Tailwind Dark Class Overrides (Light Mode) ─────────────────────────── */
+body:not(.dark) .bg-gray-900 { background: var(--bg-panel) !important; }
+body:not(.dark) .bg-gray-900\/50 { background: var(--bg-panel) !important; opacity: 0.5; }
+body:not(.dark) .bg-gray-800 { background: var(--bg-elevated) !important; }
+body:not(.dark) .bg-gray-800\/60 { background: var(--bg-elevated) !important; opacity: 0.6; }
+body:not(.dark) .bg-gray-800\/70 { background: var(--bg-elevated) !important; opacity: 0.7; }
+body:not(.dark) .text-white { color: var(--text-on-dark) !important; }
+body:not(.dark) .text-gray-100 { color: var(--text-primary) !important; }
+body:not(.dark) .text-gray-200 { color: var(--text-primary) !important; }
+body:not(.dark) .text-gray-300 { color: var(--text-primary) !important; }
+body:not(.dark) .text-gray-400 { color: var(--text-secondary) !important; }
+body:not(.dark) .text-gray-500 { color: var(--text-muted) !important; }
+body:not(.dark) .text-gray-600 { color: var(--text-muted) !important; }
+body:not(.dark) .border-gray-800 { border-color: var(--border) !important; }
+body:not(.dark) .border-gray-800\/50 { border-color: var(--border) !important; }
+body:not(.dark) .border-gray-700 { border-color: var(--border) !important; }
+body:not(.dark) .hover\:bg-gray-700:hover { background: var(--bg-elevated) !important; }
+body:not(.dark) .hover\:bg-gray-600:hover { background: var(--bg-elevated) !important; }
+body:not(.dark) .bg-gray-700 { background: var(--bg-elevated) !important; }
+
+/* SVG gauge elements */
+#fngNeedle { stroke: var(--gauge-needle); }
+#rsiNeedle { background: var(--gauge-needle); }
+#fngArcTrack { stroke: var(--border); }
+
+/* App title gradient */
+.app-title {
+  background: linear-gradient(110deg, var(--title-start) 30%, #f97316 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 
 /* ── RESPONSIVE DESIGN ─────────────────────────────────────────────────── */
 

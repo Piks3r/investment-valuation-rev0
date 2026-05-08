@@ -4,6 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Investment Valuation Rev.0</title>
+  <script>
+    (function() {
+      const t = localStorage.getItem('theme');
+      if (t === 'dark') document.documentElement.classList.add('dark');
+    })();
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
   <link rel="stylesheet" href="styles.css" />
@@ -26,8 +32,7 @@
           </svg>
         </div>
         <div class="min-w-0">
-          <h1 class="font-extrabold text-base sm:text-lg leading-tight truncate tracking-tight"
-            style="background: linear-gradient(110deg, #f1f5f9 30%, #f97316 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+          <h1 class="app-title font-extrabold text-base sm:text-lg leading-tight truncate tracking-tight">
             Asset Valuation
           </h1>
           <div class="flex items-center gap-1.5 hidden sm:flex">
@@ -38,6 +43,11 @@
       </div>
 
       <div class="flex items-center gap-2">
+        <button id="themeToggleBtn" onclick="toggleTheme()" title="Toggle dark/light mode"
+          class="flex items-center justify-center w-9 h-9 rounded-lg transition-all"
+          style="background:var(--bg-card);border:var(--border-width) solid var(--border);color:var(--text-secondary);cursor:pointer">
+          <span id="themeIcon">🌙</span>
+        </button>
         <button onclick="openAlertsModal()"
           class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all"
           style="background:var(--bg-card);border:var(--border-width) solid var(--border);color:var(--text-secondary)"
@@ -395,12 +405,12 @@
             <svg viewBox="0 0 140 80" class="w-36">
               <text x="8"   y="78" fill="#6b7280" font-size="9" font-family="Inter,sans-serif">Fear</text>
               <text x="106" y="78" fill="#6b7280" font-size="9" font-family="Inter,sans-serif">Greed</text>
-              <path d="M 14 72 A 56 56 0 0 1 126 72" fill="none" stroke="#374151" stroke-width="9" stroke-linecap="round"/>
+              <path id="fngArcTrack" d="M 14 72 A 56 56 0 0 1 126 72" fill="none" stroke-width="9" stroke-linecap="round"/>
               <path id="fngArc" d="M 14 72 A 56 56 0 0 1 126 72"
                 fill="none" stroke="#10b981" stroke-width="9" stroke-linecap="round"
                 stroke-dasharray="0 176" class="arc-fill"/>
               <line id="fngNeedle" x1="70" y1="72" x2="70" y2="18"
-                stroke="white" stroke-width="2.5" stroke-linecap="round"
+                stroke-width="2.5" stroke-linecap="round"
                 style="transform-origin: 70px 72px; transform: rotate(-90deg);" class="needle"/>
               <circle cx="70" cy="72" r="4" fill="white"/>
             </svg>

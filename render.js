@@ -842,10 +842,10 @@
             legend: { display: false },
             tooltip: {
               filter: item => !item.dataset.label.startsWith('BB'),
-              backgroundColor: '#111827',
-              titleColor: '#9ca3af',
-              bodyColor: '#f9fafb',
-              borderColor: '#374151',
+              backgroundColor: getComputedStyle(document.body).getPropertyValue('--bg-card').trim() || '#111827',
+              titleColor: getComputedStyle(document.body).getPropertyValue('--text-secondary').trim() || '#9ca3af',
+              bodyColor: getComputedStyle(document.body).getPropertyValue('--text-primary').trim() || '#f9fafb',
+              borderColor: getComputedStyle(document.body).getPropertyValue('--border').trim() || '#374151',
               borderWidth: 1,
               callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmtPrice(ctx.raw)}` },
             },
@@ -951,15 +951,15 @@
 
     function _tableColCell(key, r) {
       const { assetData, comp, t } = r;
-      const gray = '<span class="text-gray-600">—</span>';
+      const gray = '<span style="color:var(--text-muted)">—</span>';
       switch (key) {
         case 'score': return `<td class="text-right px-3 font-bold tabular-nums" style="color:${t.color}">${comp.toFixed(1)}</td>`;
         case 'zone':  return `<td class="px-3 text-xs font-semibold" style="color:${t.color}">${t.label}</td>`;
-        case 'rsi':   return `<td class="text-right px-3 tabular-nums text-gray-300">${assetData.rsiVal != null ? assetData.rsiVal.toFixed(0) : gray}</td>`;
+        case 'rsi':   return `<td class="text-right px-3 tabular-nums" style="color:var(--text-primary)">${assetData.rsiVal != null ? assetData.rsiVal.toFixed(0) : gray}</td>`;
         case 'vs200': { const v = assetData.price && assetData.ma200val ? (assetData.price / assetData.ma200val - 1) * 100 : null;
                         return `<td class="text-right px-3 tabular-nums">${v != null ? colorPct(v) : gray}</td>`; }
         case 'chg30': return `<td class="text-right px-3 tabular-nums">${assetData.c30 != null ? colorPct(assetData.c30) : gray}</td>`;
-        case 'price': return `<td class="text-right pl-3 tabular-nums text-gray-300">${fmtPrice(assetData.price)}</td>`;
+        case 'price': return `<td class="text-right pl-3 tabular-nums" style="color:var(--text-primary)">${fmtPrice(assetData.price)}</td>`;
         case 'dca':   { const sig = computeDcaSignal(comp);
                         return `<td class="text-right px-3 tabular-nums text-xs font-semibold"><span style="color:${sig.color}">${sig.action} ${sig.multiplier}×</span></td>`; }
       }
@@ -968,9 +968,9 @@
 
     function _tableColHeader(col) {
       const ind = `<span class="sort-ind" data-col="${col.sortKey ?? col.key}"></span>`;
-      if (col.sortKey) return `<th class="text-right py-2.5 px-3 font-medium cursor-pointer hover:text-gray-300" onclick="sortTable('${col.sortKey}')">${col.label} ${ind}</th>`;
-      if (col.key === 'zone') return `<th class="text-left py-2.5 px-3 font-medium">${col.label}</th>`;
-      return `<th class="text-right py-2.5 px-3 font-medium">${col.label}</th>`;
+      if (col.sortKey) return `<th class="text-right py-2.5 px-3 font-medium cursor-pointer" style="color:var(--text-muted)" onclick="sortTable('${col.sortKey}')">${col.label} ${ind}</th>`;
+      if (col.key === 'zone') return `<th class="text-left py-2.5 px-3 font-medium" style="color:var(--text-muted)">${col.label}</th>`;
+      return `<th class="text-right py-2.5 px-3 font-medium" style="color:var(--text-muted)">${col.label}</th>`;
     }
 
     // ── Table view ────────────────────────────────────────────────────────
@@ -1032,11 +1032,11 @@
           <td class="py-3 pr-4">
             <div class="flex items-center gap-2.5">
               ${assetAvatar(asset, r.t)}
-              <div><div class="font-medium text-white">${asset.name}</div><div class="text-[11px] text-gray-500">${asset.symbol}</div></div>
+              <div><div class="font-medium" style="color:var(--text-primary)">${asset.name}</div><div class="text-[11px]" style="color:var(--text-muted)">${asset.symbol}</div></div>
             </div>
           </td>
           ${cols.map(c => _tableColCell(c.key, r)).join('')}
-          <td class="pl-3"><button onclick="event.stopPropagation();removeAsset('${asset.id}')" class="text-gray-600 hover:text-red-400 transition-colors" title="Remove">${trashIcon}</button></td>
+          <td class="pl-3"><button onclick="event.stopPropagation();removeAsset('${asset.id}')" style="color:var(--text-muted);cursor:pointer;border:none;background:none;transition:color 0.2s" class="hover:text-red-400 transition-colors" title="Remove">${trashIcon}</button></td>
         </tr>`;
       }).join('');
     }
@@ -1113,9 +1113,10 @@
       if (hist.length < 3) { section.classList.add('hidden'); return; }
       section.classList.remove('hidden');
 
-      document.querySelectorAll('.score-tf-btn').forEach(btn =>
-        btn.classList.toggle('text-white', btn.dataset.stf === tf)
-      );
+      document.querySelectorAll('.score-tf-btn').forEach(btn => {
+        const isActive = btn.dataset.stf === tf;
+        btn.style.color = isActive ? 'var(--text-primary)' : 'var(--text-muted)';
+      });
 
       const labels = hist.map(h => {
         const d = new Date(h.ts);
@@ -1163,10 +1164,10 @@
           plugins: {
             legend: { display: false },
             tooltip: {
-              backgroundColor: '#111827',
-              titleColor: '#9ca3af',
-              bodyColor: '#f9fafb',
-              borderColor: '#374151',
+              backgroundColor: getComputedStyle(document.body).getPropertyValue('--bg-card').trim() || '#111827',
+              titleColor: getComputedStyle(document.body).getPropertyValue('--text-secondary').trim() || '#9ca3af',
+              bodyColor: getComputedStyle(document.body).getPropertyValue('--text-primary').trim() || '#f9fafb',
+              borderColor: getComputedStyle(document.body).getPropertyValue('--border').trim() || '#374151',
               borderWidth: 1,
               callbacks: { label: ctx => ` Score: ${ctx.raw.toFixed(1)}` },
             },

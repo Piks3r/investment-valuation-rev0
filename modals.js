@@ -1,3 +1,17 @@
+    // ── Theme Toggle ──────────────────────────────────────────────────────
+    function toggleTheme() {
+      const isDark = document.documentElement.classList.toggle('dark');
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+      updateThemeIcon();
+    }
+
+    function updateThemeIcon() {
+      const icon = document.getElementById('themeIcon');
+      if (icon) {
+        icon.textContent = document.documentElement.classList.contains('dark') ? '☀️' : '🌙';
+      }
+    }
+
     // ── Popular asset lists ───────────────────────────────────────────────
     const POPULAR = {
       crypto: [
@@ -653,6 +667,9 @@
     });
 
     // ── Boot ──────────────────────────────────────────────────────────────
+    // Initialize theme icon
+    updateThemeIcon();
+
     setInterval(() => loadData(), CACHE_TTL);
     const _initHash = location.hash.slice(1);
     if (_initHash) {

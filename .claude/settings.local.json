@@ -17,7 +17,8 @@
       "PowerShell(Start-Process msedge \"http://localhost:3000\")",
       "PowerShell($env:USERPROFILE)",
       "PowerShell(Start-Process msedge http://localhost:3000)",
-      "Bash(netstat -ano)"
+      "Bash(netstat -ano)",
+      "PowerShell(Start-Process -FilePath \"msedge.exe\" -ArgumentList \"http://localhost:3000\")"
     ]
   }
 }
