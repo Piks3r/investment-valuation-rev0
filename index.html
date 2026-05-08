@@ -8,10 +8,10 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body class="bg-gray-950 text-white min-h-screen">
+<body style="background:var(--bg-app);color:var(--text-primary);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;margin:0;padding:0;min-height:100vh">
 
   <!-- ══════════════════════ HEADER ══════════════════════ -->
-  <header class="sticky top-0 z-50 bg-gray-950/90 backdrop-blur border-b border-gray-800/60 px-4 py-3 relative">
+  <header class="sticky top-0 z-50 px-4 py-3 relative" style="background:var(--bg-app);border-bottom:var(--border-width) solid var(--border)">
     <div class="max-w-5xl mx-auto flex items-center justify-between gap-4">
 
       <div class="flex items-center gap-3 min-w-0">
@@ -39,10 +39,10 @@
 
       <div class="flex items-center gap-2">
         <button onclick="openAlertsModal()"
-          class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all text-gray-300 hover:text-white"
-          style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);"
-          onmouseover="this.style.background='rgba(255,255,255,0.09)';this.style.borderColor='rgba(255,255,255,0.13)'"
-          onmouseout="this.style.background='rgba(255,255,255,0.05)';this.style.borderColor='rgba(255,255,255,0.08)'"
+          class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all"
+          style="background:var(--bg-card);border:var(--border-width) solid var(--border);color:var(--text-secondary)"
+          onmouseover="this.style.background='var(--bg-subtle)'"
+          onmouseout="this.style.background='var(--bg-card)'"
           title="Alerts">
           <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -51,10 +51,10 @@
           <span class="hidden sm:inline">Alerts</span>
         </button>
         <button onclick="openSettings()"
-          class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all text-gray-300 hover:text-white"
-          style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);"
-          onmouseover="this.style.background='rgba(255,255,255,0.09)';this.style.borderColor='rgba(255,255,255,0.13)'"
-          onmouseout="this.style.background='rgba(255,255,255,0.05)';this.style.borderColor='rgba(255,255,255,0.08)'"
+          class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all"
+          style="background:var(--bg-card);border:var(--border-width) solid var(--border);color:var(--text-secondary)"
+          onmouseover="this.style.background='var(--bg-subtle)'"
+          onmouseout="this.style.background='var(--bg-card)'"
           title="Scoring Weights">
           <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -64,10 +64,10 @@
           <span class="hidden sm:inline">Weights</span>
         </button>
         <button id="refreshBtn" onclick="loadData(true)"
-          class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all text-gray-300 hover:text-white disabled:opacity-40"
-          style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);"
-          onmouseover="this.style.background='rgba(255,255,255,0.09)';this.style.borderColor='rgba(255,255,255,0.13)'"
-          onmouseout="this.style.background='rgba(255,255,255,0.05)';this.style.borderColor='rgba(255,255,255,0.08)'">
+          class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-40"
+          style="background:var(--bg-card);border:var(--border-width) solid var(--border);color:var(--text-secondary)"
+          onmouseover="this.style.background='var(--bg-subtle)'"
+          onmouseout="this.style.background='var(--bg-card)'">
           <svg id="refreshIcon" class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
@@ -88,13 +88,13 @@
 
       <!-- Filter bar -->
       <div id="filterBar" class="mb-5 flex items-center gap-3">
-        <div class="segment-group">
-          <button class="filter-tab active" data-filter="ALL"    onclick="setFilter('ALL')">All</button>
-          <button class="filter-tab"        data-filter="CRYPTO" onclick="setFilter('CRYPTO')">Crypto</button>
-          <button class="filter-tab"        data-filter="STOCK"  onclick="setFilter('STOCK')">Stocks</button>
-          <button class="filter-tab"        data-filter="ETF"    onclick="setFilter('ETF')">ETFs</button>
+        <div class="filter-tabs">
+          <button class="tab-btn active" data-filter="ALL"    onclick="setFilter('ALL')">All</button>
+          <button class="tab-btn"        data-filter="CRYPTO" onclick="setFilter('CRYPTO')">Crypto</button>
+          <button class="tab-btn"        data-filter="STOCK"  onclick="setFilter('STOCK')">Stocks</button>
+          <button class="tab-btn"        data-filter="ETF"    onclick="setFilter('ETF')">ETFs</button>
         </div>
-        <div class="flex gap-1 ml-auto pl-3 border-l border-gray-800 items-center">
+        <div class="flex gap-1 ml-auto pl-3 items-center" style="border-left:var(--border-width) solid var(--border)">
           <button onclick="switchView('cards')" data-view="cards" class="view-btn active px-2.5 py-1 rounded-lg text-base text-gray-400 hover:text-white transition-colors" title="Card view">⊞</button>
           <button onclick="switchView('table')" data-view="table" class="view-btn px-2.5 py-1 rounded-lg text-base text-gray-400 hover:text-white transition-colors" title="Table view">≡</button>
           <div class="relative ml-1">
@@ -116,12 +116,12 @@
       </div>
 
       <!-- Data status banner (shown on API errors / stale cache) -->
-      <div id="dataBanner" class="hidden mb-4 flex items-center justify-between gap-3 rounded-xl px-4 py-2.5 border">
+      <div id="dataBanner" class="hidden mb-4 flex items-center justify-between gap-3 rounded-lg px-4 py-2.5" style="border:var(--border-width) solid var(--border);background:var(--bg-subtle)">
         <div class="flex items-center gap-2 min-w-0">
           <span id="dataBannerIcon" class="shrink-0 text-base"></span>
-          <p id="dataBannerText" class="text-sm text-gray-300 leading-snug"></p>
+          <p id="dataBannerText" class="text-sm leading-snug" style="color:var(--text-secondary)"></p>
         </div>
-        <button onclick="loadData(true)" class="shrink-0 ml-2 px-3 py-1 rounded-lg text-xs font-semibold bg-gray-700 hover:bg-gray-600 text-gray-300 transition-colors">Retry</button>
+        <button onclick="loadData(true)" class="shrink-0 ml-2 px-3 py-1 rounded-md text-xs font-semibold transition-colors" style="background:var(--btn-bg);color:var(--btn-text);border:none;cursor:pointer">Retry</button>
       </div>
 
       <!-- Loading skeleton grid (initial) -->
@@ -226,10 +226,10 @@
       <!-- Add button -->
       <div class="text-center mt-6">
         <button onclick="openAddModal()"
-          class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
-          style="background: linear-gradient(135deg, rgba(249,115,22,0.12) 0%, rgba(249,115,22,0.06) 100%); border: 1px solid rgba(249,115,22,0.35); color: #fb923c; box-shadow: 0 2px 8px rgba(249,115,22,0.08);"
-          onmouseover="this.style.background='linear-gradient(135deg,rgba(249,115,22,0.2) 0%,rgba(249,115,22,0.1) 100%)';this.style.borderColor='rgba(249,115,22,0.6)'"
-          onmouseout="this.style.background='linear-gradient(135deg,rgba(249,115,22,0.12) 0%,rgba(249,115,22,0.06) 100%)';this.style.borderColor='rgba(249,115,22,0.35)'">
+          class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all"
+          style="background:var(--btn-bg);color:var(--btn-text);border:none;cursor:pointer"
+          onmouseover="this.style.opacity='0.9'"
+          onmouseout="this.style.opacity='1'">
           <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
           </svg>
@@ -657,64 +657,65 @@
   </main>
 
   <!-- ══════════════════════ INFO MODAL ══════════════════════ -->
-  <div id="infoModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop"
+  <div id="infoModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay"
     onclick="closeInfo()">
-    <div class="modal-panel rounded-2xl max-w-lg w-full p-6 max-h-[80vh] overflow-y-auto"
+    <div class="modal-panel max-w-lg w-full max-h-[80vh] overflow-y-auto"
       onclick="event.stopPropagation()">
       <div class="flex justify-between items-start mb-4">
-        <h3 id="infoTitle" class="font-bold text-lg leading-tight pr-4">—</h3>
-        <button onclick="closeInfo()" class="text-gray-500 hover:text-white text-2xl leading-none shrink-0 -mt-0.5">×</button>
+        <h3 id="infoTitle" class="font-bold text-lg leading-tight pr-4" style="color:var(--text-primary)">—</h3>
+        <button onclick="closeInfo()" class="text-2xl leading-none shrink-0 -mt-0.5" style="background:none;border:none;cursor:pointer;color:var(--text-muted)">×</button>
       </div>
-      <p id="infoDesc" class="text-gray-400 text-sm mb-5 leading-relaxed"></p>
+      <p id="infoDesc" class="text-sm mb-5 leading-relaxed" style="color:var(--text-secondary)"></p>
       <table id="infoTable" class="w-full text-sm mb-4 border-collapse"></table>
-      <p id="infoWeight" class="text-xs text-gray-600 pt-3 border-t border-gray-800"></p>
+      <p id="infoWeight" class="text-xs pt-3" style="color:var(--text-secondary);border-top:var(--border-width) solid var(--border)"></p>
     </div>
   </div>
 
   <!-- ══════════════════════ ADD ASSET MODAL ══════════════════════ -->
-  <div id="addModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop"
+  <div id="addModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay"
     onclick="closeAddModal()">
-    <div class="modal-panel rounded-2xl w-full max-w-md p-6 max-h-[85vh] flex flex-col"
+    <div class="modal-panel w-full max-w-md max-h-[85vh] flex flex-col"
       onclick="event.stopPropagation()">
       <div class="flex justify-between items-center mb-4">
-        <h3 class="font-bold text-lg">Add Asset</h3>
-        <button onclick="closeAddModal()" class="text-gray-500 hover:text-white text-2xl leading-none">×</button>
+        <h3 class="font-bold text-lg" style="color:var(--text-primary)">Add Asset</h3>
+        <button onclick="closeAddModal()" class="text-2xl leading-none" style="background:none;border:none;cursor:pointer;color:var(--text-muted)">×</button>
       </div>
       <!-- Category tabs -->
-      <div class="flex gap-1 mb-3 bg-gray-800 p-1 rounded-xl">
-        <button id="catTab-all"    onclick="setCategory('all')"    class="add-cat-tab flex-1 py-1.5 rounded-lg text-sm font-semibold transition-colors">All</button>
-        <button id="catTab-crypto" onclick="setCategory('crypto')" class="add-cat-tab flex-1 py-1.5 rounded-lg text-sm font-semibold transition-colors">Crypto</button>
-        <button id="catTab-stock"  onclick="setCategory('stock')"  class="add-cat-tab flex-1 py-1.5 rounded-lg text-sm font-semibold transition-colors">Stock</button>
-        <button id="catTab-etf"    onclick="setCategory('etf')"    class="add-cat-tab flex-1 py-1.5 rounded-lg text-sm font-semibold transition-colors">ETF</button>
+      <div class="flex gap-1 mb-3 p-1 rounded-lg" style="background:var(--bg-subtle)">
+        <button id="catTab-all"    onclick="setCategory('all')"    class="add-cat-tab flex-1 py-1.5 rounded-md text-sm font-semibold transition-colors">All</button>
+        <button id="catTab-crypto" onclick="setCategory('crypto')" class="add-cat-tab flex-1 py-1.5 rounded-md text-sm font-semibold transition-colors">Crypto</button>
+        <button id="catTab-stock"  onclick="setCategory('stock')"  class="add-cat-tab flex-1 py-1.5 rounded-md text-sm font-semibold transition-colors">Stock</button>
+        <button id="catTab-etf"    onclick="setCategory('etf')"    class="add-cat-tab flex-1 py-1.5 rounded-md text-sm font-semibold transition-colors">ETF</button>
       </div>
       <input id="assetSearchInput" type="text" placeholder="Search…"
-        class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 outline-none focus:border-orange-500 transition-colors mb-3"
+        class="w-full px-4 py-3 text-sm outline-none focus:outline-none mb-3" style="background:var(--bg-card);border:var(--border-width) solid var(--border);border-radius:var(--radius-md);color:var(--text-primary)"
         oninput="onSearchInput(this.value)" autocomplete="off" />
-      <div id="searchStatus" class="text-gray-500 text-sm text-center py-2 hidden"></div>
+      <div id="searchStatus" class="text-sm text-center py-2 hidden" style="color:var(--text-secondary)"></div>
       <div id="searchResults" class="overflow-y-auto flex-1 space-y-1"></div>
     </div>
   </div>
 
   <!-- ══════════════════════ SETTINGS MODAL ══════════════════════ -->
-  <div id="settingsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop"
+  <div id="settingsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay"
     onclick="closeSettings()">
-    <div class="modal-panel rounded-2xl w-full max-w-lg p-4 max-h-[90vh] overflow-y-auto"
+    <div class="modal-panel w-full max-w-lg p-4 max-h-[90vh] overflow-y-auto"
       onclick="event.stopPropagation()">
       <div class="flex justify-between items-center mb-5">
-        <h3 class="font-bold text-lg">Scoring Weights</h3>
-        <button onclick="closeSettings()" class="text-gray-500 hover:text-white text-2xl leading-none">×</button>
+        <h3 class="font-bold text-lg" style="color:var(--text-primary)">Scoring Weights</h3>
+        <button onclick="closeSettings()" class="text-2xl leading-none" style="background:none;border:none;cursor:pointer;color:var(--text-muted)">×</button>
       </div>
 
       <!-- All Presets (built-in + custom, rendered by JS) -->
-      <p class="text-xs text-gray-500 mb-1.5 font-medium uppercase tracking-wide">Presets</p>
+      <p class="text-xs mb-1.5 font-medium uppercase tracking-wide" style="color:var(--text-muted)">Presets</p>
       <div id="allPresetsRow" class="flex flex-wrap gap-2 mb-3"></div>
 
       <!-- Custom Preset Name -->
       <div class="flex gap-2 mb-3">
         <input type="text" id="customPresetName" maxlength="24" placeholder="Name your preset…"
-          class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 transition-colors" />
+          class="flex-1 px-3 py-2 text-sm rounded-md" style="background:var(--bg-card);border:var(--border-width) solid var(--border);color:var(--text-primary)" />
         <button id="deletePresetBtn" onclick="deleteActiveCustomPreset()"
-          class="hidden bg-gray-700 hover:bg-red-900/60 border border-gray-600 hover:border-red-700 px-3 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap text-gray-400 hover:text-red-400">
+          class="hidden px-3 py-2 rounded-md text-sm font-semibold transition-all whitespace-nowrap"
+          style="background:var(--change-down);color:white;border:none;cursor:pointer">
           Delete
         </button>
       </div>
@@ -724,65 +725,65 @@
         <div id="wFngRow">
           <div class="flex justify-between text-xs mb-1">
             <div class="flex items-center">
-              <span class="text-gray-300 font-medium">Fear &amp; Greed Index</span>
-              <span class="text-[10px] text-blue-400/60 ml-1.5 font-normal">Crypto only</span>
+              <span style="color:var(--text-primary)" class="font-medium">Fear &amp; Greed Index</span>
+              <span style="color:var(--text-muted)" class="text-[10px] ml-1.5 font-normal">Crypto only</span>
             </div>
-            <span id="wFngDisplay" class="text-orange-400 font-bold tabular-nums">25%</span>
+            <span id="wFngDisplay" style="color:var(--btn-bg)" class="font-bold tabular-nums">25%</span>
           </div>
           <input type="range" id="wFng" min="0" max="100" step="5" value="25" oninput="updateWeightTotal()" class="w-full" />
         </div>
         <div>
           <div class="flex justify-between text-xs mb-1">
-            <span class="text-gray-300 font-medium">RSI (14-Day)</span>
-            <span id="wRsiDisplay" class="text-orange-400 font-bold tabular-nums">25%</span>
+            <span style="color:var(--text-primary)" class="font-medium">RSI (14-Day)</span>
+            <span id="wRsiDisplay" style="color:var(--btn-bg)" class="font-bold tabular-nums">25%</span>
           </div>
           <input type="range" id="wRsi" min="0" max="100" step="5" value="25" oninput="updateWeightTotal()" class="w-full" />
         </div>
         <div>
           <div class="flex justify-between text-xs mb-1">
-            <span class="text-gray-300 font-medium">Price vs 200d MA</span>
-            <span id="wVs200Display" class="text-orange-400 font-bold tabular-nums">20%</span>
+            <span style="color:var(--text-primary)" class="font-medium">Price vs 200d MA</span>
+            <span id="wVs200Display" style="color:var(--btn-bg)" class="font-bold tabular-nums">20%</span>
           </div>
           <input type="range" id="wVs200" min="0" max="100" step="5" value="20" oninput="updateWeightTotal()" class="w-full" />
         </div>
         <div>
           <div class="flex justify-between text-xs mb-1">
-            <span class="text-gray-300 font-medium">Price vs 50d MA</span>
-            <span id="wVs50Display" class="text-orange-400 font-bold tabular-nums">15%</span>
+            <span style="color:var(--text-primary)" class="font-medium">Price vs 50d MA</span>
+            <span id="wVs50Display" style="color:var(--btn-bg)" class="font-bold tabular-nums">15%</span>
           </div>
           <input type="range" id="wVs50" min="0" max="100" step="5" value="15" oninput="updateWeightTotal()" class="w-full" />
         </div>
         <div>
           <div class="flex justify-between text-xs mb-1">
-            <span class="text-gray-300 font-medium">30-Day Change</span>
-            <span id="wChg30Display" class="text-orange-400 font-bold tabular-nums">10%</span>
+            <span style="color:var(--text-primary)" class="font-medium">30-Day Change</span>
+            <span id="wChg30Display" style="color:var(--btn-bg)" class="font-bold tabular-nums">10%</span>
           </div>
           <input type="range" id="wChg30" min="0" max="100" step="5" value="10" oninput="updateWeightTotal()" class="w-full" />
         </div>
         <div id="wDomRow">
           <div class="flex justify-between text-xs mb-1">
             <div class="flex items-center">
-              <span class="text-gray-300 font-medium">BTC Dominance</span>
-              <span class="text-[10px] text-blue-400/60 ml-1.5 font-normal">Crypto only</span>
+              <span style="color:var(--text-primary)" class="font-medium">BTC Dominance</span>
+              <span style="color:var(--text-muted)" class="text-[10px] ml-1.5 font-normal">Crypto only</span>
             </div>
-            <span id="wDomDisplay" class="text-orange-400 font-bold tabular-nums">5%</span>
+            <span id="wDomDisplay" style="color:var(--btn-bg)" class="font-bold tabular-nums">5%</span>
           </div>
           <input type="range" id="wDom" min="0" max="100" step="5" value="5" oninput="updateWeightTotal()" class="w-full" />
         </div>
       </div>
-      <p id="cryptoOnlyNote" class="hidden text-[11px] text-gray-500 mb-3 leading-snug">
+      <p id="cryptoOnlyNote" class="hidden text-[11px] mb-3 leading-snug" style="color:var(--text-secondary)">
         Fear &amp; Greed and BTC Dominance don't apply to any tracked assets — weights are redistributed automatically for stocks and ETFs.
       </p>
 
       <!-- Total + save -->
-      <div class="flex items-center justify-between pt-3 border-t border-gray-800">
-        <div class="text-sm">
+      <div class="flex items-center justify-between pt-3" style="border-top:var(--border-width) solid var(--border)">
+        <div class="text-sm" style="color:var(--text-primary)">
           Total: <span id="weightTotal" class="font-bold tabular-nums">100%</span>
-          <span id="weightHint" class="text-gray-500 text-xs ml-2">(must equal 100%)</span>
+          <span id="weightHint" class="text-xs ml-2" style="color:var(--text-secondary)">(must equal 100%)</span>
         </div>
         <button id="saveWeightsBtn" onclick="saveWeights()"
-          class="bg-orange-500 hover:bg-orange-400 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
-          style="box-shadow: 0 0 0 1px rgba(249,115,22,0.4), 0 4px 12px rgba(249,115,22,0.2);">
+          class="disabled:opacity-40 disabled:cursor-not-allowed px-4 py-2 rounded-md text-sm font-semibold transition-colors"
+          style="background:var(--btn-bg);color:var(--btn-text);border:none;cursor:pointer">
           Save
         </button>
       </div>
@@ -791,22 +792,22 @@
   </div>
 
   <!-- ══════════════════════ ALERTS MODAL ══════════════════════ -->
-  <div id="alertsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop"
+  <div id="alertsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay"
     onclick="closeAlertsModal()">
-    <div class="modal-panel rounded-2xl w-full max-w-lg p-6 max-h-[85vh] flex flex-col"
+    <div class="modal-panel w-full max-w-lg max-h-[85vh] flex flex-col"
       onclick="event.stopPropagation()">
       <div class="flex items-center justify-between mb-5">
-        <h2 class="text-base font-bold">Alerts</h2>
-        <button onclick="closeAlertsModal()" class="text-gray-500 hover:text-gray-300 transition-colors text-xl leading-none">✕</button>
+        <h2 class="text-base font-bold" style="color:var(--text-primary)">Alerts</h2>
+        <button onclick="closeAlertsModal()" class="transition-colors text-xl leading-none" style="background:none;border:none;cursor:pointer;color:var(--text-muted)">✕</button>
       </div>
-      <div class="flex items-center justify-between gap-3 mb-4 pb-4 border-b border-gray-800">
+      <div class="flex items-center justify-between gap-3 mb-4 pb-4" style="border-bottom:var(--border-width) solid var(--border)">
         <div>
-          <p class="text-sm font-medium text-gray-300">Zone Change Alerts</p>
-          <p class="text-xs text-gray-500 mt-0.5">Notify when an asset moves to a new valuation zone</p>
+          <p class="text-sm font-medium" style="color:var(--text-primary)">Zone Change Alerts</p>
+          <p class="text-xs mt-0.5" style="color:var(--text-secondary)">Notify when an asset moves to a new valuation zone</p>
         </div>
         <button id="notifToggleBtn" onclick="toggleNotifications()"></button>
       </div>
-      <p id="notifPermissionNote" class="hidden mb-3 text-xs text-yellow-600">
+      <p id="notifPermissionNote" class="hidden mb-3 text-xs" style="color:var(--text-secondary)">
         Notifications are blocked in your browser. Allow them in browser settings to enable alerts.
       </p>
       <div id="alertsModalBody" class="overflow-y-auto flex-1"></div>

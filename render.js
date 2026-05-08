@@ -12,6 +12,32 @@
       </div>`;
     }
 
+    // ── Zone classification helpers ───────────────────────────────────────
+    function getZoneClass(score) {
+      if (score <= 2) return 'badge-very-cheap';
+      if (score <= 4) return 'badge-cheap';
+      if (score <= 6) return 'badge-fair';
+      if (score <= 8) return 'badge-expensive';
+      return 'badge-very-expensive';
+    }
+
+    function getZoneLabel(score) {
+      if (score <= 2) return 'Very Cheap';
+      if (score <= 4) return 'Cheap';
+      if (score <= 6) return 'Fair';
+      if (score <= 8) return 'Expensive';
+      return 'Very Expensive';
+    }
+
+    function getChangeClass(percent) {
+      return percent >= 0 ? 'change-positive' : 'change-negative';
+    }
+
+    function formatChange(percent) {
+      const sign = percent >= 0 ? '+' : '−';
+      return `${sign}${Math.abs(percent).toFixed(1)}%`;
+    }
+
     // ── Badge helper ──────────────────────────────────────────────────────
     function setBadge(id, score) {
       const t  = tier(score);
@@ -202,14 +228,18 @@
 
     function renderAssetCard(asset, assetData, scores, comp, t, staleTs) {
       const { price, c24h } = assetData;
-      const typeBadgeColor = asset.type === 'crypto' ? 'text-blue-400' : asset.type === 'etf' ? 'text-purple-400' : 'text-green-400';
+      const typeBadgeColor = asset.type === 'crypto' ? 'text-blue-600' : asset.type === 'etf' ? 'text-purple-600' : 'text-green-600';
       const typeLabel = asset.type.toUpperCase();
+      const zoneClass = getZoneClass(comp);
+      const zoneLabel = getZoneLabel(comp);
+      const changeClass = getChangeClass(c24h);
+      const changeStr = formatChange(c24h);
 
       const sparkline = sparklineSVG(assetData.prices || [], t.color);
       const scoreSpark = scoreSparklineSVG(asset.id, t.color);
 
       return `
-      <div class="asset-card" onclick="expandAsset('${asset.id}')" style="border-color:${t.border}; border-top-color:${t.color}; border-top-width:2px;">
+      <div class="asset-card" onclick="expandAsset('${asset.id}')">
         <button class="asset-card-remove" onclick="event.stopPropagation();removeAsset('${asset.id}')" title="Remove">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
@@ -219,22 +249,22 @@
           <div class="flex items-center gap-2.5 min-w-0 ml-4">
             ${assetAvatar(asset, t)}
             <div class="min-w-0">
-              <div class="font-bold text-sm truncate">${asset.name}</div>
-              <div class="text-xs text-gray-500">${asset.symbol} · <span class="${typeBadgeColor}">${typeLabel}</span></div>
+              <div class="font-bold text-sm truncate" style="color:var(--text-primary)">${asset.name}</div>
+              <div class="text-xs" style="color:var(--text-secondary)">${asset.symbol} · <span class="${typeBadgeColor}">${typeLabel}</span></div>
             </div>
           </div>
           <div class="text-right shrink-0 ml-2">
-            <div class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold" style="background:${t.bg};color:${t.color};border:1px solid ${t.border};">${t.label}</div>
-            <div class="text-gray-400 text-xs mt-0.5">${comp.toFixed(1)} <span class="text-gray-600">/ 10</span></div>
+            <div class="valuation-badge ${zoneClass}">${comp.toFixed(1)} ${zoneLabel}</div>
+            <div style="color:var(--text-secondary);font-size:12px;margin-top:4px">${comp.toFixed(1)} <span style="color:var(--text-muted)">/ 10</span></div>
           </div>
         </div>
-        <div class="flex items-center justify-between pt-2.5 border-t border-white/5 text-sm">
-          <span class="font-semibold tabular-nums">${fmtPrice(price)}</span>
-          <span>${colorPct(c24h)} <span class="text-gray-600 text-xs">(24h)</span></span>
+        <div class="flex items-center justify-between pt-2.5" style="border-top:var(--border-width) solid var(--border);font-size:14px">
+          <span class="font-semibold tabular-nums" style="color:var(--text-primary)">${fmtPrice(price)}</span>
+          <span class="${changeClass}">${changeStr} <span style="color:var(--text-muted);font-size:11px">(24h)</span></span>
         </div>
         <div class="mt-2.5" style="opacity:0.9">${sparkline}</div>
-        ${scoreSpark ? `<div class="mt-1" style="opacity:0.75">${scoreSpark}</div><div class="text-gray-600 text-[10px] mt-0.5">score trend</div>` : ''}
-        ${staleTs ? `<div class="mt-1.5 text-[10px] text-amber-500/70 tabular-nums">Cached · ${fmtAge(staleTs)} ago</div>` : ''}
+        ${scoreSpark ? `<div class="mt-1" style="opacity:0.75">${scoreSpark}</div><div style="color:var(--text-muted);font-size:10px;margin-top:4px">score trend</div>` : ''}
+        ${staleTs ? `<div class="mt-1.5 text-[10px]" style="color:var(--text-muted);font-family:monospace">Cached · ${fmtAge(staleTs)} ago</div>` : ''}
       </div>`;
     }
 

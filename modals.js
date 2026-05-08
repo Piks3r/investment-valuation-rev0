@@ -67,9 +67,9 @@
         const btn = document.getElementById('catTab-' + cat);
         if (!btn) return;
         if (cat === activeCategory) {
-          btn.className = 'add-cat-tab flex-1 py-1.5 rounded-lg text-sm font-semibold transition-colors bg-gray-700 text-white';
+          btn.style.cssText = 'background:var(--btn-bg);color:var(--btn-text);border:none;cursor:pointer';
         } else {
-          btn.className = 'add-cat-tab flex-1 py-1.5 rounded-lg text-sm font-semibold transition-colors text-gray-400 hover:text-white';
+          btn.style.cssText = 'background:transparent;color:var(--text-secondary);border:none;cursor:pointer';
         }
       });
     }
@@ -105,25 +105,25 @@
       statusEl.classList.add('hidden');
 
       if (results.length === 0) {
-        resEl.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">No results found.</p>';
+        resEl.innerHTML = '<p style="color:var(--text-secondary)" class="text-sm text-center py-4">No results found.</p>';
         return;
       }
 
       _searchResults = results;
-      const header = showHeader ? '<p class="text-xs text-gray-500 font-medium uppercase tracking-wide px-1 pb-1">Popular</p>' : '';
+      const header = showHeader ? '<p style="color:var(--text-muted)" class="text-xs font-medium uppercase tracking-wide px-1 pb-1">Popular</p>' : '';
       resEl.innerHTML = header + results.map((r, idx) => {
-        const typeBadge  = r.type === 'crypto' ? 'text-blue-400 bg-blue-900/30' : r.type === 'etf' ? 'text-purple-400 bg-purple-900/30' : 'text-green-400 bg-green-900/30';
-        const addedBadge = r.alreadyAdded ? '<span class="text-xs text-gray-500 ml-auto">Added</span>' : '';
+        const typeBadge  = r.type === 'crypto' ? 'text-blue-600 bg-blue-100' : r.type === 'etf' ? 'text-purple-600 bg-purple-100' : 'text-green-600 bg-green-100';
+        const addedBadge = r.alreadyAdded ? '<span style="color:var(--text-muted)" class="text-xs ml-auto">Added</span>' : '';
         const clickAttr  = r.alreadyAdded ? '' : `onclick="_addFromSearchIdx(${idx})"`;
         const imgOrIcon  = r.thumb
           ? `<img src="${r.thumb}" class="w-8 h-8 rounded-full" onerror="this.style.display='none'" />`
-          : `<div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-400">${r.symbol.slice(0,2)}</div>`;
+          : `<div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style="background:var(--bg-subtle);color:var(--text-secondary)">${r.symbol.slice(0,2)}</div>`;
         return `
-          <div class="search-result ${r.alreadyAdded ? 'opacity-50 cursor-not-allowed' : ''}" ${clickAttr}>
+          <div class="search-result ${r.alreadyAdded ? 'opacity-50 cursor-not-allowed' : ''}" ${clickAttr} style="${r.alreadyAdded ? '' : 'cursor:pointer'}">
             ${imgOrIcon}
             <div class="min-w-0 flex-1">
-              <div class="font-semibold text-sm truncate">${r.name}</div>
-              <div class="text-xs text-gray-500">${r.symbol}</div>
+              <div class="font-semibold text-sm truncate" style="color:var(--text-primary)">${r.name}</div>
+              <div style="color:var(--text-secondary)" class="text-xs">${r.symbol}</div>
             </div>
             <span class="text-xs font-bold px-2 py-0.5 rounded-md ${typeBadge} shrink-0">${r.type.toUpperCase()}</span>
             ${addedBadge}
@@ -264,15 +264,15 @@
       try { localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(presets)); } catch {}
     }
 
-    function _presetBtnClass(name) {
+    function _presetBtnStyle(name) {
       const isActive = name === activePreset;
-      return 'py-2 px-4 rounded-lg text-sm font-semibold border transition-all ' + (
-        !isActive
-          ? 'bg-gray-800 hover:bg-gray-700 border-gray-700 hover:border-orange-500 text-gray-300'
-          : name === '__custom__'
-          ? 'bg-gray-700 border-amber-400 text-amber-300'
-          : 'bg-gray-700 border-orange-500 text-orange-400'
-      );
+      if (!isActive) {
+        return 'background:var(--bg-card);color:var(--text-secondary);border:var(--border-width) solid var(--border)';
+      }
+      if (name === '__custom__') {
+        return 'background:var(--bg-subtle);color:var(--text-primary);border:var(--border-width) solid var(--border)';
+      }
+      return 'background:var(--btn-bg);color:var(--btn-text);border:var(--border-width) solid var(--btn-bg)';
     }
 
     function renderAllPresetButtons() {
@@ -283,15 +283,15 @@
 
       const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
       const driftBtn = (activePreset === '__custom__' && basedOnPreset)
-        ? `<button class="${_presetBtnClass('__custom__')} cursor-default">✏ Custom (${cap(basedOnPreset)})</button>`
+        ? `<button style="${_presetBtnStyle('__custom__')}" class="py-2 px-4 rounded-md text-sm font-semibold border transition-all cursor-default">✏ Custom (${cap(basedOnPreset)})</button>`
         : '';
 
       row.innerHTML = [
         driftBtn,
         ...builtIns.map(name =>
-          `<button onclick="applyWeightPreset('${name}')" class="${_presetBtnClass(name)}">${cap(name)}</button>`),
+          `<button onclick="applyWeightPreset('${name}')" style="${_presetBtnStyle(name)}" class="py-2 px-4 rounded-md text-sm font-semibold border transition-all cursor-pointer">${cap(name)}</button>`),
         ...customs.map(name =>
-          `<button onclick="selectCustomPreset('${name.replace(/'/g, "&#39;")}')" class="${_presetBtnClass(name)}">${name}</button>`),
+          `<button onclick="selectCustomPreset('${name.replace(/'/g, "&#39;")}')" style="${_presetBtnStyle(name)}" class="py-2 px-4 rounded-md text-sm font-semibold border transition-all cursor-pointer">${name}</button>`),
       ].join('');
     }
 
@@ -455,7 +455,7 @@
       });
       const body = document.getElementById('alertsModalBody');
       if (!active.length) {
-        body.innerHTML = '<p class="text-gray-500 text-sm text-center py-6">No alerts saved yet.<br><span class="text-gray-600 text-xs">Open any asset and set a price or score alert.</span></p>';
+        body.innerHTML = '<p style="color:var(--text-secondary)" class="text-sm text-center py-6">No alerts saved yet.<br><span style="color:var(--text-muted)" class="text-xs">Open any asset and set a price or score alert.</span></p>';
         return;
       }
       body.innerHTML = `
@@ -463,26 +463,28 @@
           ${active.map(a => {
             const cfg = all[a.id];
             const priceTag = cfg.priceBelow != null
-              ? `<span class="bg-gray-800 border border-gray-700 rounded px-2 py-0.5 text-xs text-gray-300">Price &lt; ${fmtPrice(cfg.priceBelow)}</span>`
+              ? `<span style="background:var(--bg-subtle);border:var(--border-width) solid var(--border);color:var(--text-secondary)" class="rounded px-2 py-0.5 text-xs">Price &lt; ${fmtPrice(cfg.priceBelow)}</span>`
               : '';
             const scoreTag = cfg.scoreBelow != null
-              ? `<span class="bg-gray-800 border border-gray-700 rounded px-2 py-0.5 text-xs text-gray-300">Score &lt; ${cfg.scoreBelow}</span>`
+              ? `<span style="background:var(--bg-subtle);border:var(--border-width) solid var(--border);color:var(--text-secondary)" class="rounded px-2 py-0.5 text-xs">Score &lt; ${cfg.scoreBelow}</span>`
               : '';
             return `
-              <div class="flex items-center justify-between gap-3 bg-gray-900 border border-gray-800 rounded-xl px-4 py-3">
+              <div class="flex items-center justify-between gap-3 rounded-lg px-4 py-3" style="background:var(--bg-card);border:var(--border-width) solid var(--border)">
                 <div class="min-w-0">
-                  <div class="text-sm font-semibold truncate">${a.name} <span class="text-gray-500 font-normal text-xs">${a.symbol}</span></div>
+                  <div style="color:var(--text-primary)" class="text-sm font-semibold truncate">${a.name} <span style="color:var(--text-secondary);font-weight:400" class="text-xs">${a.symbol}</span></div>
                   <div class="flex flex-wrap gap-1.5 mt-1.5">${priceTag}${scoreTag}</div>
                 </div>
                 <button onclick="clearAlertFromModal('${a.id}')"
-                  class="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-400 transition-colors">
+                  style="background:var(--btn-bg);color:var(--btn-text);border:none;cursor:pointer"
+                  class="shrink-0 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors">
                   Clear
                 </button>
               </div>`;
           }).join('')}
         </div>
         <button onclick="clearAllAlerts()"
-          class="w-full py-2 rounded-lg text-xs font-semibold bg-gray-800 hover:bg-red-900/30 border border-gray-700 hover:border-red-700/50 text-gray-500 hover:text-red-400 transition-colors">
+          style="background:var(--bg-card);color:var(--text-secondary);border:var(--border-width) solid var(--border);cursor:pointer"
+          class="w-full py-2 rounded-lg text-xs font-semibold transition-colors">
           Clear All Alerts
         </button>`;
     }
@@ -547,13 +549,13 @@
       note.classList.add('hidden');
       if (!supported) {
         btn.textContent = 'Not supported';
-        btn.className   = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-700 text-gray-500 cursor-not-allowed';
+        btn.style.cssText = 'background:var(--bg-subtle);color:var(--text-muted);border:none;cursor:not-allowed;padding:6px 12px;border-radius:var(--radius-md);font-size:12px;font-weight:500';
         btn.disabled    = true;
         return;
       }
       if (perm === 'denied') {
         btn.textContent = 'Blocked';
-        btn.className   = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-700 text-red-400 cursor-not-allowed';
+        btn.style.cssText = 'background:var(--change-down);color:white;border:none;cursor:not-allowed;padding:6px 12px;border-radius:var(--radius-md);font-size:12px;font-weight:500';
         btn.disabled    = true;
         note.classList.remove('hidden');
         return;
@@ -561,10 +563,10 @@
       btn.disabled = false;
       if (perm === 'granted' && enabled) {
         btn.textContent = 'Alerts On';
-        btn.className   = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-emerald-100 transition-colors';
+        btn.style.cssText = 'background:var(--zone-very-cheap);color:white;border:none;cursor:pointer;padding:6px 12px;border-radius:var(--radius-md);font-size:12px;font-weight:500;transition-colors:0.2s';
       } else {
         btn.textContent = perm === 'default' ? 'Enable Alerts' : 'Alerts Off';
-        btn.className   = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-700 hover:bg-gray-600 text-gray-300 transition-colors';
+        btn.style.cssText = 'background:var(--bg-card);color:var(--text-secondary);border:var(--border-width) solid var(--border);cursor:pointer;padding:6px 12px;border-radius:var(--radius-md);font-size:12px;font-weight:500;transition-colors:0.2s';
       }
     }
     async function toggleNotifications() {

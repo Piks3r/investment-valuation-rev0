@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(start:*)",
+      "Bash(gh api:*)",
+      "Bash(gh repo:*)",
+      "Bash(powershell:*)",
+      "WebSearch",
+      "WebFetch(domain:investanswers.io)",
+      "WebFetch(domain:support.coingecko.com)",
+      "Bash(node *)",
+      "WebFetch(domain:api.anthropic.com)",
+      "Bash(git *)",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(pkill -f \"node dev-server.js\")",
+      "Bash(node dev-server.js)",
+      "PowerShell(Start-Process msedge \"http://localhost:3000\")",
+      "PowerShell($env:USERPROFILE)",
+      "PowerShell(Start-Process msedge http://localhost:3000)",
+      "Bash(netstat -ano)"
+    ]
+  }
+}

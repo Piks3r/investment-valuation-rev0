@@ -166,9 +166,10 @@
       return (n >= 0 ? '+' : '') + Number(n).toFixed(dec) + '%';
     }
     function colorPct(n) {
-      if (n == null) return '<span class="text-gray-500">—</span>';
-      const cls = n >= 0 ? 'text-emerald-400' : 'text-red-400';
-      return `<span class="${cls}">${fmtPct(n)}</span>`;
+      if (n == null) return '<span style="color:var(--text-muted)">—</span>';
+      const cls = n >= 0 ? 'change-positive' : 'change-negative';
+      const sign = n >= 0 ? '+' : '−';
+      return `<span class="${cls}">${sign}${Math.abs(n).toFixed(1)}%</span>`;
     }
 
     // ── localStorage helpers ──────────────────────────────────────────────
