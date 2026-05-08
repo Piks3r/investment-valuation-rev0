@@ -34,6 +34,7 @@
     }
 
     function formatChange(percent) {
+      if (percent == null) return '—';
       const sign = percent >= 0 ? '+' : '−';
       return `${sign}${Math.abs(percent).toFixed(1)}%`;
     }
@@ -80,7 +81,7 @@
       const loadEl    = document.getElementById('loadingCards');
 
       // Update filter tabs
-      document.querySelectorAll('.filter-tab').forEach(btn => {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.filter === currentFilter);
       });
 
@@ -227,6 +228,8 @@
       const zoneLabel = getZoneLabel(comp);
       const changeClass = getChangeClass(c24h);
       const changeStr = formatChange(c24h);
+      const cacheData = staleTs ? staleTs : (() => { try { const c = JSON.parse(localStorage.getItem('asset_cache_' + asset.id) || '{}'); return c.ts; } catch { return null; } })();
+      const cacheLabel = staleTs ? `Cached · ${fmtAge(staleTs)} ago` : (cacheData ? `Updated ${fmtAge(cacheData)} ago` : '');
 
       return `
       <div class="asset-card" onclick="expandAsset('${asset.id}')">
@@ -261,7 +264,7 @@
             <span style="color:var(--text-muted);font-size:10px">Expensive</span>
           </div>
         </div>
-        ${staleTs ? `<div class="mt-1.5 text-[10px]" style="color:var(--text-muted);font-family:monospace">Cached · ${fmtAge(staleTs)} ago</div>` : ''}
+        ${cacheLabel ? `<div class="mt-1.5 text-[10px]" style="color:var(--text-muted);font-family:monospace">${cacheLabel}</div>` : ''}
       </div>`;
     }
 
@@ -438,6 +441,7 @@
       // Price alert inputs
       const savedAlert = getAlertForAsset(asset.id);
       document.getElementById('alertPriceInput').value = savedAlert.priceBelow != null ? savedAlert.priceBelow : '';
+      document.getElementById('alertPriceAboveInput').value = savedAlert.priceAbove != null ? savedAlert.priceAbove : '';
       document.getElementById('alertScoreInput').value = savedAlert.scoreBelow != null ? savedAlert.scoreBelow : '';
 
       // DCA Signal
@@ -628,16 +632,18 @@
     function saveAssetAlert() {
       if (!expandedAssetId) return;
       const rawPrice = document.getElementById('alertPriceInput').value.trim();
+      const rawPriceAbove = document.getElementById('alertPriceAboveInput').value.trim();
       const rawScore = document.getElementById('alertScoreInput').value.trim();
       const cfg = {
         priceBelow: rawPrice ? parseFloat(rawPrice) : null,
+        priceAbove: rawPriceAbove ? parseFloat(rawPriceAbove) : null,
         scoreBelow: rawScore ? parseFloat(rawScore) : null,
       };
       setAlertForAsset(expandedAssetId, cfg);
       const btn = document.getElementById('alertSaveBtn');
       btn.textContent = 'Saved ✓';
       setTimeout(() => { btn.textContent = 'Save Alert'; }, 1500);
-      if (cfg.priceBelow != null || cfg.scoreBelow != null) {
+      if (cfg.priceBelow != null || cfg.priceAbove != null || cfg.scoreBelow != null) {
         if ('Notification' in window && Notification.permission === 'default') {
           Notification.requestPermission().then(r => { if (r === 'granted') setNotifEnabled(true); });
         }
@@ -645,8 +651,9 @@
     }
     function clearAssetAlert() {
       if (!expandedAssetId) return;
-      setAlertForAsset(expandedAssetId, { priceBelow: null, scoreBelow: null });
+      setAlertForAsset(expandedAssetId, { priceBelow: null, priceAbove: null, scoreBelow: null });
       document.getElementById('alertPriceInput').value = '';
+      document.getElementById('alertPriceAboveInput').value = '';
       document.getElementById('alertScoreInput').value = '';
     }
 
@@ -1055,6 +1062,7 @@
 
     function switchView(view) {
       currentView = view;
+      localStorage.setItem('view_mode', view);
       document.querySelectorAll('.view-btn').forEach(btn =>
         btn.classList.toggle('active', btn.dataset.view === view)
       );
@@ -1123,7 +1131,11 @@
       const tfDays = { '1d':1, '7d':7, '30d':30, '90d':90, '180d':180, '365d':365 };
       const cutoff = tfDays[tf] != null ? Date.now() - tfDays[tf] * 864e5 : 0;
       const hist = raw.filter(h => h.ts >= cutoff);
-      if (hist.length < 3) { section.classList.add('hidden'); return; }
+      if (hist.length < 3) {
+        section.classList.remove('hidden');
+        section.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:32px 16px">Score history will appear after a few sessions</div>';
+        return;
+      }
       section.classList.remove('hidden');
 
       const style = getComputedStyle(document.body);

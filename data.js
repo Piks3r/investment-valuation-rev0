@@ -64,15 +64,22 @@
     }
     function rsi14(prices) {
       if (prices.length < 15) return null;
-      const slice = prices.slice(-15);
-      let gains = 0, losses = 0;
-      for (let i = 1; i < slice.length; i++) {
-        const d = slice[i] - slice[i - 1];
-        if (d >= 0) gains += d; else losses -= d;
+      let sumGains = 0, sumLosses = 0;
+      for (let i = 1; i < 15; i++) {
+        const diff = prices[i] - prices[i - 1];
+        if (diff > 0) sumGains += diff;
+        else sumLosses -= diff;
       }
-      const avgG = gains / 14, avgL = losses / 14;
-      if (avgL === 0) return 100;
-      return 100 - 100 / (1 + avgG / avgL);
+      let avgGain = sumGains / 14, avgLoss = sumLosses / 14;
+      for (let i = 15; i < prices.length; i++) {
+        const diff = prices[i] - prices[i - 1];
+        const gain = diff > 0 ? diff : 0;
+        const loss = diff < 0 ? -diff : 0;
+        avgGain = (avgGain * 13 + gain) / 14;
+        avgLoss = (avgLoss * 13 + loss) / 14;
+      }
+      if (avgLoss === 0) return 100;
+      return 100 - 100 / (1 + avgGain / avgLoss);
     }
 
     // ── MACD, Bollinger, Sparkline ────────────────────────────────────────
@@ -347,6 +354,15 @@
             icon: asset.image || undefined, tag: 'price-' + asset.id,
           });
           fired[asset.id + '_price'] = now;
+        }
+      }
+      if (cfg.priceAbove != null && price >= cfg.priceAbove) {
+        if (now - (fired[asset.id + '_priceAbove'] || 0) > COOLDOWN) {
+          new Notification(`${asset.name} price alert`, {
+            body: `Price ${fmtPrice(price)} reached your target of ${fmtPrice(cfg.priceAbove)}`,
+            icon: asset.image || undefined, tag: 'priceAbove-' + asset.id,
+          });
+          fired[asset.id + '_priceAbove'] = now;
         }
       }
       if (cfg.scoreBelow != null && comp <= cfg.scoreBelow) {

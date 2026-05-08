@@ -253,7 +253,9 @@
       saveTrackedAssets(assets);
       try { localStorage.removeItem('asset_cache_' + id); } catch {}
       try { localStorage.removeItem('score_history_' + id); } catch {}
-      collapseToCards();
+      if (!document.getElementById('expandedView').classList.contains('hidden')) {
+        collapseToCards();
+      }
       renderCardsView(currentFilter);
     }
 
@@ -596,7 +598,7 @@
     // ── Filter ────────────────────────────────────────────────────────────
     function setFilter(f) {
       currentFilter = f;
-      document.querySelectorAll('.filter-tab').forEach(btn => {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.filter === f);
       });
       renderCardsView(f);
@@ -685,7 +687,12 @@
             .then(d => renderExpandedView(_initAsset, d))
             .catch(console.error);
         }
+        const savedView = localStorage.getItem('view_mode');
+        if (savedView === 'table') switchView('table');
       });
     } else {
-      loadData();
+      loadData().then(() => {
+        const savedView = localStorage.getItem('view_mode');
+        if (savedView === 'table') switchView('table');
+      });
     }
