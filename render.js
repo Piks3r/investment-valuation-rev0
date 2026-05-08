@@ -235,7 +235,7 @@
             <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
           </svg>
         </button>
-        <div class="flex items-start justify-between mb-2">
+        <div class="flex items-start justify-between mb-1.5">
           <div class="flex items-center gap-2.5 min-w-0 ml-4">
             ${assetAvatar(asset, t)}
             <div class="min-w-0">
@@ -245,10 +245,9 @@
           </div>
           <div class="text-right shrink-0 ml-2">
             <div class="valuation-badge ${zoneClass}">${comp.toFixed(1)} ${zoneLabel}</div>
-            <div style="color:var(--text-secondary);font-size:12px;margin-top:4px">${comp.toFixed(1)} <span style="color:var(--text-muted)">/ 10</span></div>
           </div>
         </div>
-        <div class="flex items-center justify-between pt-2.5" style="border-top:var(--border-width) solid var(--border);font-size:14px">
+        <div class="flex items-center justify-between pt-2" style="border-top:var(--border-width) solid var(--border);font-size:14px">
           <span class="font-semibold tabular-nums" style="color:var(--text-primary)">${fmtPrice(price)}</span>
           <span class="${changeClass}">${changeStr} <span style="color:var(--text-muted);font-size:11px">(24h)</span></span>
         </div>
